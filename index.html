@@ -12,23 +12,14 @@
     --muted: #666; --done: #39ff14; --undone: #ff3c00; --border: #2a2a2a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Space Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'Space Mono', monospace; min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
   body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; z-index: 9999; }
   
   header { padding: 48px 40px 32px; border-bottom: 2px solid var(--accent); background: var(--bg); position: sticky; top: 0; z-index: 100; display: flex; align-items: flex-end; gap: 32px; flex-wrap: wrap; }
   .header-title { flex: 1; min-width: 260px; }
-  
-  .header-title .label { 
-    font-size: clamp(14px, 1.6vw, 19px); 
-    letter-spacing: 0.46em; 
-    color: var(--accent); 
-    text-transform: uppercase; 
-    margin-top: 8px;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-  }
+  .header-title .label { font-size: clamp(14px, 1.6vw, 19px); letter-spacing: 0.46em; color: var(--accent); text-transform: uppercase; margin-top: 8px; font-weight: 700; line-height: 1; white-space: nowrap; }
   .header-title h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 6vw, 72px); line-height: 0.9; letter-spacing: 0.02em; color: var(--text); }
+  .header-title h1 span { color: var(--accent); }
   
   .total-progress { text-align: right; min-width: 160px; }
   .total-progress .prog-label { font-size: 10px; letter-spacing: 0.25em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
@@ -44,7 +35,7 @@
   .nav-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
   .nav-btn .nav-pct { display: block; font-size: 9px; opacity: 0.7; margin-top: 2px; }
 
-  main { padding: 32px 40px; max-width: 1400px; margin: 0 auto; }
+  main { padding: 32px 40px; max-width: 1400px; margin: 0 auto; flex: 1; width: 100%; }
   .location-panel { display: none; }
   .location-panel.visible { display: block; animation: fadeIn 0.25s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -67,7 +58,6 @@
   .challenge-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
   .challenge-table tbody tr:hover { background: var(--bg3); }
   
-  /* Dim cells except the checkbox cell for CHECKED rows */
   .challenge-table tbody tr.done-row td:not(.done-cell) { opacity: 0.35; } 
 
   .challenge-table td { padding: 10px 12px; }
@@ -78,11 +68,7 @@
   .stance-badge.any { border-color: var(--muted); color: var(--muted); }
 
   .done-checkbox { appearance: none; width: 18px; height: 18px; border: 2px solid var(--border); cursor: pointer; position: relative; transition: all 0.2s; }
-  .done-checkbox:checked { 
-    background: var(--done); 
-    border-color: var(--done); 
-    box-shadow: 0 0 12px var(--done); 
-  }
+  .done-checkbox:checked { background: var(--done); border-color: var(--done); box-shadow: 0 0 12px var(--done); }
   .done-checkbox:checked::after { content: '✓'; color: #000; position: absolute; left: 3px; top: -2px; font-weight: bold; }
 
   .home-panel { display: none; }
@@ -101,13 +87,34 @@
   .total-label { font-family: 'Bebas Neue', sans-serif; font-size: 28px; }
   .total-value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); }
   
-  .footer-actions { margin-top: 40px; text-align: center; border-top: 1px solid var(--border); padding-top: 20px; }
-  .reset-btn { background: transparent; border: 1px solid var(--accent2); color: var(--accent2); font-family: 'Space Mono', monospace; font-size: 9px; padding: 6px 12px; cursor: pointer; text-transform: uppercase; opacity: 0.6; transition: 0.2s; }
+  /* FOOTER & BUTTONS */
+  .footer-actions { margin-top: 40px; text-align: center; border-top: 1px solid var(--border); padding-top: 30px; padding-bottom: 40px; width: 100%; }
+  
+  .action-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); font-family: 'Space Mono', monospace; font-size: 10px; padding: 8px 20px; cursor: pointer; text-transform: uppercase; transition: 0.2s; letter-spacing: 0.1em; }
+  .action-btn:hover { background: var(--accent); color: #000; }
+  
+  .reset-btn { background: transparent; border: 1px solid var(--accent2); color: var(--accent2); font-family: 'Space Mono', monospace; font-size: 9px; padding: 6px 12px; cursor: pointer; text-transform: uppercase; opacity: 0.6; transition: 0.2s; margin-top: 16px; }
   .reset-btn:hover { opacity: 1; background: rgba(255, 60, 0, 0.1); }
 
-  .back-home-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 16px; cursor: pointer; text-transform: uppercase; margin-bottom: 24px; }
+  .back-home-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 16px; cursor: pointer; text-transform: uppercase; margin-bottom: 24px; transition: 0.15s; }
+  .back-home-btn:hover { border-color: var(--accent); color: var(--accent); }
+  
   .time-link, .source-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
   .time-link:hover, .source-link:hover { border-bottom-color: var(--accent); }
+
+  /* CUSTOM MODAL CSS */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.visible { display: flex; animation: fadeIn 0.2s; }
+  .modal-content { background: var(--bg2); border: 2px solid var(--accent); padding: 32px; max-width: 500px; width: 90%; color: var(--text); font-family: 'Space Mono', monospace; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .modal-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--accent); letter-spacing: 0.05em; margin: 0; line-height: 1; }
+  .close-modal { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; transition: 0.2s; font-family: 'Space Mono', monospace; }
+  .close-modal:hover { color: var(--accent2); }
+  .modal-desc { font-size: 11px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+  .modal-input { width: 100%; height: 100px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; font-family: monospace; font-size: 12px; margin-bottom: 24px; resize: none; outline: none; transition: border-color 0.15s; }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-btn { width: 100%; background: var(--accent); color: #000; border: none; padding: 12px; font-family: 'Space Mono', monospace; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 0.1em; }
+  .modal-btn:hover { background: #fff; }
 </style>
 </head>
 <body>
@@ -141,7 +148,10 @@
 </nav>
 
 <main>
+  <!-- HOME PANEL -->
   <div class="home-panel visible" id="view-home">
+    <div class="home-title">Challenge Overview</div>
+    <div class="home-subtitle">Track your historical progress across all cities</div>
     <div class="home-grid">
       <div class="city-card">
         <div class="city-name">New York City</div>
@@ -174,12 +184,9 @@
       </div>
     </div>
     <div class="total-row"><span class="total-label">Total Progress</span><span class="total-value">0 / 0 — 0%</span></div>
-    
-    <div class="footer-actions">
-      <button class="reset-btn" onclick="resetAllProgress()">Wipe Saved Progress</button>
-    </div>
   </div>
 
+  <!-- PANELS -->
   <div id="view-Lower Manhattan" class="location-panel"></div>
   <div id="view-Black Hubba" class="location-panel"></div>
   <div id="view-Jerome Banks" class="location-panel"></div>
@@ -189,7 +196,29 @@
   <div id="view-China Banks" class="location-panel"></div>
   <div id="view-Pier 7" class="location-panel"></div>
   <div id="view-Global" class="location-panel"></div>
+
+  <!-- GLOBAL FOOTER -->
+  <div class="footer-actions">
+    <div style="display:flex; gap:16px; justify-content:center; margin-bottom:10px;">
+        <button class="action-btn" onclick="handleExport()">Export Save Code</button>
+        <button class="action-btn" onclick="handleImport()">Import Save Code</button>
+    </div>
+    <button class="reset-btn" onclick="resetAllProgress()">Wipe Local Save</button>
+  </div>
 </main>
+
+<!-- IMPORT/EXPORT MODAL -->
+<div id="save-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modal-title">Save Code</h2>
+      <button class="close-modal" onclick="closeModal()">X</button>
+    </div>
+    <p id="modal-desc" class="modal-desc"></p>
+    <textarea id="modal-input" class="modal-input" spellcheck="false"></textarea>
+    <button id="modal-action-btn" class="modal-btn"></button>
+  </div>
+</div>
 
 <script>
 let DATA = {};
@@ -209,6 +238,7 @@ const CSV_LOCATIONS = {
   'Global': 'data/' + encodeURIComponent('Global.csv')
 };
 
+const B62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const loadPromises = {};
 
 function parseCsvLine(line) {
@@ -242,11 +272,8 @@ function parseLocationCsv(key, text) {
     const cells = parseCsvLine(line);
     if (!cells[col.stance] || !cells[col.skater]) continue;
     const num = cells[col.num] || (rows.length + 1).toString().padStart(2, '0');
-    
-    // BLANK SLATE LOGIC: Ignore CSV 'Done' column. Pull only from user local memory.
     const saved = localStorage.getItem(`progress_${key}_${num}`);
     let doneVal = (saved !== null) ? parseInt(saved, 10) : 0; 
-
     rows.push({
       num, time: cells[col.time],
       link: isHttpToken(cells[col.time+1]) ? cells[col.time+1] : null,
@@ -276,6 +303,7 @@ function updateAllProgress() {
   document.querySelector('.prog-pct').textContent = `${pct}% Complete`;
   document.querySelector('.progress-bar-fill').style.width = pct + '%';
   if(document.querySelector('.total-value')) document.querySelector('.total-value').textContent = `${gD} / ${gT} — ${pct}%`;
+  
   document.querySelectorAll('.nav-btn').forEach(btn => {
     const v = btn.dataset.view;
     if (v !== 'home' && DATA[v]) {
@@ -283,6 +311,7 @@ function updateAllProgress() {
       btn.querySelector('.nav-pct').textContent = `${DATA[v].done_count}/${DATA[v].total} — ${p}%`;
     }
   });
+  
   document.querySelectorAll('.city-location-row').forEach(row => {
     const name = row.querySelector('.loc-link-name').textContent.trim();
     const match = Object.keys(DATA).find(k => name.includes(k) || k.includes(name));
@@ -294,6 +323,7 @@ function updateAllProgress() {
       row.querySelector('.loc-mini-pct').textContent = Math.round(p) + '%';
     }
   });
+  
   if (currentKey && DATA[currentKey]) {
     const panel = document.getElementById(`view-${currentKey}`);
     if (panel) {
@@ -343,18 +373,100 @@ function toggleDone(key, num, cb) {
 }
 
 function resetAllProgress() {
-  if (confirm("This will wipe all your saved progress and return to a blank slate. Are you sure?")) {
-    localStorage.clear();
-    location.reload();
+  if (confirm("Wipe your local progress entirely? This cannot be undone.")) { 
+    localStorage.clear(); 
+    location.reload(); 
   }
+}
+
+/** COMPRESSION ENGINE **/
+function toB62(n) {
+  let res = ""; let i = n; if (i === 0) return "00";
+  while (i > 0) { res = B62[i % 62] + res; i = Math.floor(i / 62); }
+  return res.padStart(2, "0");
+}
+function fromB62(s) {
+  let res = 0; for (let i = 0; i < s.length; i++) { res = res * 62 + B62.indexOf(s[i]); }
+  return res;
+}
+function encodeSaveCode() {
+  const bits = [];
+  Object.keys(CSV_LOCATIONS).forEach(k => { if(DATA[k] && DATA[k].rows) DATA[k].rows.forEach(r => bits.push(r.done)); });
+  if (!bits.length) return "";
+  let res = bits[0].toString(); let cur = bits[0]; let count = 0;
+  bits.forEach(b => { if (b === cur) { count++; } else { res += toB62(count); cur = b; count = 1; } });
+  return res + toB62(count);
+}
+function decodeSaveCode(code) {
+  if (!code || code.length < 3) throw new Error("Invalid Code");
+  const startBit = parseInt(code[0]); const runs = code.substring(1).match(/.{1,2}/g);
+  const bits = []; let cur = startBit;
+  runs.forEach(r => { const c = fromB62(r); for(let i=0; i<c; i++) bits.push(cur); cur = 1 - cur; });
+  let ptr = 0;
+  Object.keys(CSV_LOCATIONS).forEach(k => {
+    if(DATA[k] && DATA[k].rows) {
+      DATA[k].rows.forEach(r => {
+        const b = bits[ptr++]; if (b !== undefined) { r.done = b; localStorage.setItem(`progress_${k}_${r.num}`, b); }
+      });
+      DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
+    }
+  });
+  updateAllProgress();
+}
+
+/** MODAL UI HANDLERS **/
+function closeModal() { document.getElementById('save-modal').classList.remove('visible'); }
+
+async function handleExport() {
+  await Promise.all(Object.keys(CSV_LOCATIONS).map(k => ensureLocationLoaded(k)));
+  const code = encodeSaveCode();
+  
+  document.getElementById('modal-title').innerText = "Export Save Code";
+  document.getElementById('modal-desc').innerText = "Copy this text block. You can paste it on another device or browser to restore your exact progress.";
+  const input = document.getElementById('modal-input');
+  input.value = code; input.readOnly = true;
+  
+  const btn = document.getElementById('modal-action-btn');
+  btn.innerText = "Copy to Clipboard";
+  btn.onclick = () => {
+    navigator.clipboard.writeText(code).catch(()=>{});
+    input.select(); document.execCommand("copy"); // fallback
+    btn.innerText = "Copied!";
+    setTimeout(() => btn.innerText = "Copy to Clipboard", 2000);
+  };
+  document.getElementById('save-modal').classList.add('visible');
+}
+
+function handleImport() {
+  document.getElementById('modal-title').innerText = "Import Save Code";
+  document.getElementById('modal-desc').innerText = "Paste your save code below. WARNING: This will overwrite your current progress.";
+  const input = document.getElementById('modal-input');
+  input.value = ""; input.readOnly = false;
+  
+  const btn = document.getElementById('modal-action-btn');
+  btn.innerText = "Load Progress";
+  btn.onclick = async () => {
+    const code = input.value.trim();
+    if(code) {
+      try {
+        await Promise.all(Object.keys(CSV_LOCATIONS).map(k => ensureLocationLoaded(k)));
+        decodeSaveCode(code);
+        closeModal();
+        if(currentKey && currentKey !== 'home') showView(currentKey); // Refresh current table
+      } catch (e) { alert("Invalid save code or data failed to load."); }
+    }
+  };
+  document.getElementById('save-modal').classList.add('visible');
 }
 
 async function showView(view) {
   document.querySelectorAll('.home-panel, .location-panel').forEach(p => p.classList.remove('visible'));
   currentKey = view; currentFilter = 'all'; searchQuery = '';
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
-  if (view === 'home') { document.getElementById('view-home').classList.add('visible'); } 
-  else {
+  
+  if (view === 'home') { 
+    document.getElementById('view-home').classList.add('visible'); 
+  } else {
     const panel = document.getElementById(`view-${view}`);
     if (panel) {
       await ensureLocationLoaded(view);
@@ -384,6 +496,7 @@ function setSearch(val) {
   if (wrap) wrap.innerHTML = buildTable(DATA[currentKey].rows, currentKey);
 }
 
+// Ensure pre-load starts on mount
 Object.keys(CSV_LOCATIONS).forEach(k => ensureLocationLoaded(k));
 document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
 </script>
