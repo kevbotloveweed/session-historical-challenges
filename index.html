@@ -54,13 +54,16 @@
 
   .challenge-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .challenge-table thead tr { border-bottom: 2px solid var(--accent); }
-  .challenge-table th { font-size: 9px; color: var(--muted); padding: 10px 12px; text-align: left; text-transform: uppercase; }
+  .challenge-table th { font-size: 9px; color: var(--muted); padding: 10px 12px; text-align: left; text-transform: uppercase; cursor: pointer; user-select: none; transition: color 0.15s; }
+  .challenge-table th:hover { color: var(--accent); }
+  .challenge-table th.sorted { color: var(--accent); }
   .challenge-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
   .challenge-table tbody tr:hover { background: var(--bg3); }
-  
   .challenge-table tbody tr.done-row td:not(.done-cell) { opacity: 0.35; } 
-
   .challenge-table td { padding: 10px 12px; }
+
+  .sort-indicator { margin-left: 4px; opacity: 0.5; }
+  .sort-indicator.active { opacity: 1; color: var(--accent); }
 
   .stance-badge { font-size: 9px; padding: 2px 7px; border: 1px solid; text-transform: uppercase; display: inline-block; }
   .stance-badge.regular { border-color: #4488ff; color: #4488ff; }
@@ -87,31 +90,26 @@
   .total-label { font-family: 'Bebas Neue', sans-serif; font-size: 28px; }
   .total-value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); }
   
-  /* FOOTER & BUTTONS */
   .footer-actions { margin-top: 40px; text-align: center; border-top: 1px solid var(--border); padding-top: 30px; padding-bottom: 40px; width: 100%; }
-  
   .action-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); font-family: 'Space Mono', monospace; font-size: 10px; padding: 8px 20px; cursor: pointer; text-transform: uppercase; transition: 0.2s; letter-spacing: 0.1em; }
   .action-btn:hover { background: var(--accent); color: #000; }
-  
   .reset-btn { background: transparent; border: 1px solid var(--accent2); color: var(--accent2); font-family: 'Space Mono', monospace; font-size: 9px; padding: 6px 12px; cursor: pointer; text-transform: uppercase; opacity: 0.6; transition: 0.2s; margin-top: 16px; }
   .reset-btn:hover { opacity: 1; background: rgba(255, 60, 0, 0.1); }
-
   .back-home-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 16px; cursor: pointer; text-transform: uppercase; margin-bottom: 24px; transition: 0.15s; }
   .back-home-btn:hover { border-color: var(--accent); color: var(--accent); }
-  
   .time-link, .source-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
   .time-link:hover, .source-link:hover { border-bottom-color: var(--accent); }
 
   /* CUSTOM MODAL CSS */
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px); cursor: pointer; }
   .modal-overlay.visible { display: flex; animation: fadeIn 0.2s; }
-  .modal-content { background: var(--bg2); border: 2px solid var(--accent); padding: 32px; max-width: 500px; width: 90%; color: var(--text); font-family: 'Space Mono', monospace; }
+  .modal-content { background: var(--bg2); border: 2px solid var(--accent); padding: 32px; max-width: 500px; width: 90%; color: var(--text); font-family: 'Space Mono', monospace; cursor: default; }
   .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .modal-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--accent); letter-spacing: 0.05em; margin: 0; line-height: 1; }
   .close-modal { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; transition: 0.2s; font-family: 'Space Mono', monospace; }
   .close-modal:hover { color: var(--accent2); }
   .modal-desc { font-size: 11px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
-  .modal-input { width: 100%; height: 100px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; font-family: monospace; font-size: 12px; margin-bottom: 24px; resize: none; outline: none; transition: border-color 0.15s; }
+  .modal-input { width: 100%; height: 100px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; font-family: monospace; font-size: 14px; text-align: center; margin-bottom: 24px; resize: none; outline: none; transition: border-color 0.15s; letter-spacing: 0.1em; word-wrap: break-word;}
   .modal-input:focus { border-color: var(--accent); }
   .modal-btn { width: 100%; background: var(--accent); color: #000; border: none; padding: 12px; font-family: 'Space Mono', monospace; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 0.1em; }
   .modal-btn:hover { background: #fff; }
@@ -137,7 +135,7 @@
 <nav id="main-nav">
   <button class="nav-btn active" data-view="home">Home <span class="nav-pct">Overview</span></button>
   <button class="nav-btn" data-view="Lower Manhattan">Lower Manhattan <span class="nav-pct">...</span></button>
-  <button class="nav-btn" data-view="Black Hubba">Black Hubba <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="Black Hubba">Black Hubbas <span class="nav-pct">...</span></button>
   <button class="nav-btn" data-view="Jerome Banks">Jerome Banks <span class="nav-pct">...</span></button>
   <button class="nav-btn" data-view="Les Coleman Park">Les Coleman Park <span class="nav-pct">...</span></button>
   <button class="nav-btn" data-view="Pyramid Ledges">Pyramid Ledges <span class="nav-pct">...</span></button>
@@ -148,14 +146,13 @@
 </nav>
 
 <main>
-  <!-- HOME PANEL -->
   <div class="home-panel visible" id="view-home">
     <div class="home-grid">
       <div class="city-card">
         <div class="city-name">New York City</div>
         <div class="city-locations">
           <div class="city-location-row" onclick="showView('Lower Manhattan')"><span class="loc-link-name">Lower Manhattan</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
-          <div class="city-location-row" onclick="showView('Black Hubba')"><span class="loc-link-name">Black Hubba</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+          <div class="city-location-row" onclick="showView('Black Hubba')"><span class="loc-link-name">Black Hubbas</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
           <div class="city-location-row" onclick="showView('Jerome Banks')"><span class="loc-link-name">Jerome Banks</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
           <div class="city-location-row" onclick="showView('Les Coleman Park')"><span class="loc-link-name">Les Coleman Park</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
           <div class="city-location-row" onclick="showView('Pyramid Ledges')"><span class="loc-link-name">Pyramid Ledges</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
@@ -184,7 +181,6 @@
     <div class="total-row"><span class="total-label">Total Progress</span><span class="total-value">0 / 0 — 0%</span></div>
   </div>
 
-  <!-- PANELS -->
   <div id="view-Lower Manhattan" class="location-panel"></div>
   <div id="view-Black Hubba" class="location-panel"></div>
   <div id="view-Jerome Banks" class="location-panel"></div>
@@ -195,7 +191,7 @@
   <div id="view-Pier 7" class="location-panel"></div>
   <div id="view-Global" class="location-panel"></div>
 
-  <!-- GLOBAL FOOTER -->
+  <!-- GLOBAL FOOTER ACTIONS -->
   <div class="footer-actions">
     <div style="display:flex; gap:16px; justify-content:center; margin-bottom:10px;">
         <button class="action-btn" onclick="handleExport()">Export Save Code</button>
@@ -213,7 +209,7 @@
       <button class="close-modal" onclick="closeModal()">X</button>
     </div>
     <p id="modal-desc" class="modal-desc"></p>
-    <textarea id="modal-input" class="modal-input" spellcheck="false"></textarea>
+    <textarea id="modal-input" class="modal-input" spellcheck="false" autocomplete="off"></textarea>
     <button id="modal-action-btn" class="modal-btn"></button>
   </div>
 </div>
@@ -223,22 +219,96 @@ let DATA = {};
 let currentKey = null;
 let currentFilter = 'all';
 let searchQuery = '';
+let currentSort = { col: null, dir: 1 };
 
-const CSV_LOCATIONS = {
-  'Lower Manhattan': 'data/' + encodeURIComponent('Lower Manhattan.csv'),
-  'Black Hubba': 'data/' + encodeURIComponent('Black Hubba.csv'),
-  'Jerome Banks': 'data/' + encodeURIComponent('Jerome Banks.csv'),
-  'Les Coleman Park': 'data/' + encodeURIComponent('Les Coleman Park.csv'),
-  'Pyramid Ledges': 'data/' + encodeURIComponent('Pyramid Ledges.csv'),
-  'Philly': 'data/' + encodeURIComponent('Philly.csv'),
-  'China Banks': 'data/' + encodeURIComponent('China Banks.csv'),
-  'Pier 7': 'data/' + encodeURIComponent('Pier 7.csv'),
-  'Global': 'data/' + encodeURIComponent('Global.csv')
-};
-
-const B62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ORDERED_KEYS = ['Lower Manhattan', 'Black Hubba', 'Jerome Banks', 'Les Coleman Park', 'Pyramid Ledges', 'Philly', 'China Banks', 'Pier 7', 'Global'];
+const CSV_LOCATIONS = {};
+ORDERED_KEYS.forEach(k => CSV_LOCATIONS[k] = 'data/' + encodeURIComponent(k + '.csv'));
 const loadPromises = {};
 
+/* ===============
+   SESSIONSIM LOSSLESS BASE36 ENGINE
+================= */
+const SESSIONSIM = (() => {
+    const EMPTY_REF = "IDONTSKATE";
+    const FULL_REF = "SESSIONSIM";
+    const MAP_SIZES = [73, 45, 7, 21, 23, 82, 14, 68, 2];
+    const TOTAL_MAX = 335;
+    const B36 = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+    function toB36(n) {
+        if (n === 0n) return "0";
+        let res = ""; let base = 36n;
+        while (n > 0n) { res = B36[Number(n % base)] + res; n /= base; }
+        return res;
+    }
+
+    function fromB36(s) {
+        let res = 0n; let base = 36n;
+        for (let i = 0; i < s.length; i++) res = res * base + BigInt(B36.indexOf(s[i]));
+        return res;
+    }
+
+    function packBits(arr) {
+        let mask = 0n;
+        for (let i = 0; i < arr.length; i++) { if (arr[i]) mask |= (1n << BigInt(i)); }
+        return mask;
+    }
+
+    function unpackBits(mask, size) {
+        let arr = [];
+        for (let i = 0; i < size; i++) { arr.push((mask & (1n << BigInt(i))) !== 0n); }
+        return arr;
+    }
+
+    return {
+        encode: function(state) {
+            if (state.total === 0) return EMPTY_REF;
+            if (state.total === TOTAL_MAX) return FULL_REF;
+
+            let code = "";
+            for (let i = 0; i < 9; i++) {
+                const checkedCount = state.maps[i].filter(Boolean).length;
+                if (checkedCount === 0) code += EMPTY_REF[i];
+                else if (checkedCount === MAP_SIZES[i]) code += FULL_REF[i];
+                else code += toB36(packBits(state.maps[i]));
+            }
+
+            if (state.total === 0) code += EMPTY_REF[9];
+            else if (state.total === TOTAL_MAX) code += FULL_REF[9];
+            else code += toB36(BigInt(state.total));
+
+            return code;
+        },
+        decode: function(input) {
+            const code = input.trim();
+            if (code.toUpperCase() === EMPTY_REF) return { maps: MAP_SIZES.map(s => new Array(s).fill(false)), total: 0 };
+            if (code.toUpperCase() === FULL_REF) return { maps: MAP_SIZES.map(s => new Array(s).fill(true)), total: TOTAL_MAX };
+
+            const tokens = code.match(/[a-z0-9]+|[A-Z]/g);
+            if (!tokens || tokens.length !== 10) throw new Error("Invalid Code");
+
+            const state = { maps: [], total: 0 };
+            for (let i = 0; i < 9; i++) {
+                const t = tokens[i];
+                if (t === EMPTY_REF[i]) state.maps.push(new Array(MAP_SIZES[i]).fill(false));
+                else if (t === FULL_REF[i]) state.maps.push(new Array(MAP_SIZES[i]).fill(true));
+                else state.maps.push(unpackBits(fromB36(t), MAP_SIZES[i]));
+            }
+            
+            const tTotal = tokens[9];
+            if (tTotal === EMPTY_REF[9]) state.total = 0;
+            else if (tTotal === FULL_REF[9]) state.total = TOTAL_MAX;
+            else state.total = Number(fromB36(tTotal));
+
+            return state;
+        }
+    };
+})();
+
+/* ===============
+   CORE LOGIC
+================= */
 function parseCsvLine(line) {
   const out = []; let cur = ''; let inQ = false;
   for (let i = 0; i < line.length; i++) {
@@ -335,17 +405,70 @@ function updateAllProgress() {
   }
 }
 
+function sortTable(key, col) {
+  if (currentSort.col === col) {
+    currentSort.dir *= -1;
+  } else {
+    currentSort.col = col;
+    currentSort.dir = 1;
+  }
+  const wrap = document.getElementById(`table-wrap-${key.replace(/\s/g,'_')}`);
+  if (wrap) wrap.innerHTML = buildTable(DATA[key].rows, key);
+}
+
 function buildTable(rows, key) {
   let filtered = rows.filter(r => {
     if (currentFilter === 'done') return r.done === 1;
     if (currentFilter === 'undone') return r.done === 0;
     return true;
   });
+  
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
-    filtered = filtered.filter(r => r.skater.toLowerCase().includes(q) || r.trick.toLowerCase().includes(q));
+    filtered = filtered.filter(r => 
+      r.skater.toLowerCase().includes(q) || 
+      r.trick.toLowerCase().includes(q) ||
+      r.num.toLowerCase().includes(q) ||
+      r.stance.toLowerCase().includes(q) ||
+      r.time.toLowerCase().includes(q) ||
+      (r.source && r.source.toLowerCase().includes(q))
+    );
   }
-  let html = `<table class="challenge-table"><thead><tr><th>#</th><th>Time</th><th>Stance</th><th>Skater</th><th>Trick</th><th>Film Source</th><th>Done</th></tr></thead><tbody>`;
+
+  if (currentSort.col) {
+    filtered.sort((a, b) => {
+      let av = a[currentSort.col];
+      let bv = b[currentSort.col];
+      if (currentSort.col === 'num') {
+        return (parseInt(av, 10) - parseInt(bv, 10)) * currentSort.dir;
+      }
+      if (currentSort.col === 'done') {
+        return (av - bv) * currentSort.dir;
+      }
+      av = (av || '').toString().toLowerCase();
+      bv = (bv || '').toString().toLowerCase();
+      return av.localeCompare(bv) * currentSort.dir;
+    });
+  }
+
+  const cols = [
+    { label: '#', key: 'num' },
+    { label: 'Time', key: 'time' },
+    { label: 'Stance', key: 'stance' },
+    { label: 'Skater', key: 'skater' },
+    { label: 'Trick', key: 'trick' },
+    { label: 'Film Source', key: 'source' },
+    { label: 'Done', key: 'done' }
+  ];
+
+  let html = `<table class="challenge-table"><thead><tr>`;
+  cols.forEach(c => {
+    const sorted = currentSort.col === c.key;
+    const arrow = sorted ? (currentSort.dir === 1 ? ' ↑' : ' ↓') : ' ⇅';
+    html += `<th class="${sorted ? 'sorted' : ''}" onclick="sortTable('${key}','${c.key}')">${c.label}<span class="sort-indicator ${sorted ? 'active' : ''}">${arrow}</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
   filtered.forEach(r => {
     html += `<tr class="${r.done === 1 ? 'done-row' : ''}">
       <td>${r.num}</td>
@@ -377,50 +500,29 @@ function resetAllProgress() {
   }
 }
 
-/** COMPRESSION ENGINE **/
-function toB62(n) {
-  let res = ""; let i = n; if (i === 0) return "00";
-  while (i > 0) { res = B62[i % 62] + res; i = Math.floor(i / 62); }
-  return res.padStart(2, "0");
-}
-function fromB62(s) {
-  let res = 0; for (let i = 0; i < s.length; i++) { res = res * 62 + B62.indexOf(s[i]); }
-  return res;
-}
-function encodeSaveCode() {
-  const bits = [];
-  Object.keys(CSV_LOCATIONS).forEach(k => { if(DATA[k] && DATA[k].rows) DATA[k].rows.forEach(r => bits.push(r.done)); });
-  if (!bits.length) return "";
-  let res = bits[0].toString(); let cur = bits[0]; let count = 0;
-  bits.forEach(b => { if (b === cur) { count++; } else { res += toB62(count); cur = b; count = 1; } });
-  return res + toB62(count);
-}
-function decodeSaveCode(code) {
-  if (!code || code.length < 3) throw new Error("Invalid Code");
-  const startBit = parseInt(code[0]); const runs = code.substring(1).match(/.{1,2}/g);
-  const bits = []; let cur = startBit;
-  runs.forEach(r => { const c = fromB62(r); for(let i=0; i<c; i++) bits.push(cur); cur = 1 - cur; });
-  let ptr = 0;
-  Object.keys(CSV_LOCATIONS).forEach(k => {
-    if(DATA[k] && DATA[k].rows) {
-      DATA[k].rows.forEach(r => {
-        const b = bits[ptr++]; if (b !== undefined) { r.done = b; localStorage.setItem(`progress_${k}_${r.num}`, b); }
-      });
-      DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
-    }
-  });
-  updateAllProgress();
-}
-
-/** MODAL UI HANDLERS **/
+/* ===============
+   MODAL UI LOGIC 
+================= */
 function closeModal() { document.getElementById('save-modal').classList.remove('visible'); }
 
+document.getElementById('save-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
 async function handleExport() {
-  await Promise.all(Object.keys(CSV_LOCATIONS).map(k => ensureLocationLoaded(k)));
-  const code = encodeSaveCode();
+  await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+  let t = 0;
+  const maps = ORDERED_KEYS.map(k => {
+    if(!DATA[k]) return [];
+    const arr = DATA[k].rows.map(r => r.done === 1);
+    t += arr.filter(Boolean).length;
+    return arr;
+  });
+  
+  const code = SESSIONSIM.encode({ maps, total: t });
   
   document.getElementById('modal-title').innerText = "Export Save Code";
-  document.getElementById('modal-desc').innerText = "Copy this text block. You can paste it on another device or browser to restore your exact progress.";
+  document.getElementById('modal-desc').innerText = "Copy this code. You can paste it on another device to restore your exact progress losslessly.";
   const input = document.getElementById('modal-input');
   input.value = code; input.readOnly = true;
   
@@ -437,7 +539,7 @@ async function handleExport() {
 
 function handleImport() {
   document.getElementById('modal-title').innerText = "Import Save Code";
-  document.getElementById('modal-desc').innerText = "Paste your save code below. WARNING: This will overwrite your current progress.";
+  document.getElementById('modal-desc').innerText = "Paste your code below. WARNING: Overwrites current progress.";
   const input = document.getElementById('modal-input');
   input.value = ""; input.readOnly = false;
   
@@ -447,11 +549,23 @@ function handleImport() {
     const code = input.value.trim();
     if(code) {
       try {
-        await Promise.all(Object.keys(CSV_LOCATIONS).map(k => ensureLocationLoaded(k)));
-        decodeSaveCode(code);
+        await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+        const state = SESSIONSIM.decode(code);
+        
+        ORDERED_KEYS.forEach((k, i) => {
+          if(DATA[k] && DATA[k].rows) {
+            DATA[k].rows.forEach((r, idx) => {
+              const v = state.maps[i][idx] ? 1 : 0;
+              r.done = v;
+              localStorage.setItem(`progress_${k}_${r.num}`, v);
+            });
+            DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
+          }
+        });
+        updateAllProgress();
         closeModal();
-        if(currentKey && currentKey !== 'home') showView(currentKey); // Refresh current table
-      } catch (e) { alert("Invalid save code or data failed to load."); }
+        if(currentKey && currentKey !== 'home') showView(currentKey);
+      } catch (e) { alert("Invalid save code format."); }
     }
   };
   document.getElementById('save-modal').classList.add('visible');
@@ -459,7 +573,7 @@ function handleImport() {
 
 async function showView(view) {
   document.querySelectorAll('.home-panel, .location-panel').forEach(p => p.classList.remove('visible'));
-  currentKey = view; currentFilter = 'all'; searchQuery = '';
+  currentKey = view; currentFilter = 'all'; searchQuery = ''; currentSort = { col: null, dir: 1 };
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   
   if (view === 'home') { 
@@ -494,8 +608,8 @@ function setSearch(val) {
   if (wrap) wrap.innerHTML = buildTable(DATA[currentKey].rows, currentKey);
 }
 
-// Ensure pre-load starts on mount
-Object.keys(CSV_LOCATIONS).forEach(k => ensureLocationLoaded(k));
+// Initialization
+ORDERED_KEYS.forEach(k => ensureLocationLoaded(k));
 document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
 </script>
 </body>
