@@ -42,9 +42,11 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   .spot-header-group { position: sticky; z-index: 900; background: var(--bg); transition: top 0.3s ease; padding-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-top: -16px; }
-  .loc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 16px; }
-  .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); text-transform: uppercase; }
-  .loc-stats { display: flex; gap: 24px; align-items: center; }
+  
+  /* Flex wrap adjustments for responsiveness */
+  .loc-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 16px; }
+  .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); text-transform: uppercase; word-break: break-word; flex: 1 1 250px; }
+  .loc-stats { display: flex; gap: clamp(16px, 3vw, 24px); align-items: center; flex-wrap: wrap; }
   .loc-stat { text-align: center; }
   .loc-stat .val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--accent); display: block; }
   .loc-stat .key { font-size: 9px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; }
@@ -98,7 +100,7 @@
   .reset-btn { background: transparent; border: 1px solid var(--accent2); color: var(--accent2); font-family: 'Space Mono', monospace; font-size: 9px; padding: 6px 12px; cursor: pointer; text-transform: uppercase; opacity: 0.6; transition: 0.2s; margin-top: 16px; }
   .reset-btn:hover { opacity: 1; background: rgba(255, 60, 0, 0.1); }
   
-  .back-home-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 16px; cursor: pointer; text-transform: uppercase; transition: 0.15s; }
+  .back-home-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 16px; cursor: pointer; text-transform: uppercase; transition: 0.15s; margin-bottom: 16px; display: inline-block;}
   .back-home-btn:hover { border-color: var(--accent); color: var(--accent); }
   .footer-nav { margin-top: 30px; padding: 20px 0; border-top: 1px solid var(--border); display: flex; justify-content: center; }
 
@@ -118,6 +120,16 @@
   .modal-input:focus { border-color: var(--accent); }
   .modal-btn { width: 100%; background: var(--accent); color: #000; border: none; padding: 12px; font-family: 'Space Mono', monospace; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 0.1em; }
   .modal-btn:hover { background: #fff; }
+
+  /* MOBILE RESPONSIVE FIXES */
+  @media (max-width: 768px) {
+    header, nav, main { padding-left: 16px; padding-right: 16px; }
+    .loc-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .loc-stats { justify-content: flex-start; width: 100%; }
+    .challenge-table { font-size: 11px; }
+    .challenge-table td, .challenge-table th { padding: 8px 6px; }
+    .search-box { margin-left: 0; width: 100%; margin-top: 8px; }
+  }
 </style>
 </head>
 <body>
@@ -183,6 +195,7 @@
         </div>
       </div>
     </div>
+    
     <div class="total-row" onclick="showView('all_challenges')" title="View All Challenges">
       <span class="total-label">Total Progress</span>
       <span class="total-value">0 / 0 — 0%</span>
@@ -616,23 +629,24 @@ function handleImport() {
   btn.onclick = async () => {
     const code = input.value.trim();
     if(code) {
-      await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
-      const state = SESSIONSIM.decode(code);
-      if(!state) { alert("Invalid code format."); return; }
-      
-      ORDERED_KEYS.forEach((k, i) => {
-        if(DATA[k] && DATA[k].rows) {
-          DATA[k].rows.forEach((r, idx) => {
-            const v = state.maps[i][idx] ? 1 : 0;
-            r.done = v;
-            localStorage.setItem(`progress_${k}_${r.num}`, v);
-          });
-          DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
-        }
-      });
-      updateAllProgress();
-      closeModal();
-      if(currentKey && currentKey !== 'home') showView(currentKey);
+      try {
+        await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+        const state = SESSIONSIM.decode(code);
+        
+        ORDERED_KEYS.forEach((k, i) => {
+          if(DATA[k] && DATA[k].rows) {
+            DATA[k].rows.forEach((r, idx) => {
+              const v = state.maps[i][idx] ? 1 : 0;
+              r.done = v;
+              localStorage.setItem(`progress_${k}_${r.num}`, v);
+            });
+            DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
+          }
+        });
+        updateAllProgress();
+        closeModal();
+        if(currentKey && currentKey !== 'home') showView(currentKey);
+      } catch (e) { alert("Invalid save code format."); }
     }
   };
   document.getElementById('save-modal').classList.add('visible');
