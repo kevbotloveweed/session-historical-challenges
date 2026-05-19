@@ -42,8 +42,6 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   .spot-header-group { position: sticky; z-index: 900; background: var(--bg); transition: top 0.3s ease; padding-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-top: -16px; }
-  
-  /* Flex wrap adjustments for responsiveness (Vertical gap issue fixed) */
   .loc-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 16px; }
   .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); text-transform: uppercase; word-break: break-word; }
   .loc-stats { display: flex; gap: clamp(16px, 3vw, 24px); align-items: center; flex-wrap: wrap; }
@@ -104,10 +102,10 @@
   .back-home-btn:hover { border-color: var(--accent); color: var(--accent); }
   .footer-nav { margin-top: 30px; padding: 20px 0; border-top: 1px solid var(--border); display: flex; justify-content: center; }
 
-  .time-link, .source-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+  .time-link, .source-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; cursor: pointer; }
   .time-link:hover, .source-link:hover { border-bottom-color: var(--accent); }
 
-  /* CUSTOM MODAL CSS */
+  /* COMPRESSION MODAL CSS */
   .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px); cursor: pointer; }
   .modal-overlay.visible { display: flex; animation: fadeIn 0.2s; }
   .modal-content { background: var(--bg2); border: 2px solid var(--accent); padding: 32px; max-width: 500px; width: 90%; color: var(--text); font-family: 'Space Mono', monospace; cursor: default; }
@@ -120,6 +118,17 @@
   .modal-input:focus { border-color: var(--accent); }
   .modal-btn { width: 100%; background: var(--accent); color: #000; border: none; padding: 12px; font-family: 'Space Mono', monospace; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 0.1em; }
   .modal-btn:hover { background: #fff; }
+
+  /* YT PLAYER MODAL CSS */
+  #yt-modal { background: rgba(0,0,0,0.9); cursor: pointer; }
+  .yt-modal-content { background: var(--bg2); border: 2px solid var(--accent); max-width: 900px; width: 95%; display: flex; flex-direction: column; position: relative; transition: border-color 0.3s ease, box-shadow 0.3s ease; cursor: default; }
+  .yt-modal-content.checked { border-color: var(--done); box-shadow: 0 0 40px rgba(57, 255, 20, 0.4); }
+  .yt-close-btn { position: absolute; top: -36px; right: 0; background: transparent; border: none; color: var(--text); font-family: 'Space Mono', monospace; font-size: 24px; cursor: pointer; transition: color 0.2s; }
+  .yt-close-btn:hover { color: var(--accent2); }
+  #yt-player-wrap { width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .yt-row-info { padding: 16px; background: var(--bg); border-top: 1px solid var(--border); }
+  .yt-row-info table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .yt-row-info td { padding: 10px 12px; vertical-align: middle; border-bottom: none; }
 
   /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 768px) {
@@ -238,6 +247,15 @@
   </div>
 </div>
 
+<!-- YOUTUBE PLAYER MODAL -->
+<div id="yt-modal" class="modal-overlay">
+  <div class="yt-modal-content">
+    <button class="yt-close-btn" onclick="closeYTModal()">X</button>
+    <div id="yt-player-wrap"><div id="yt-player-div"></div></div>
+    <div id="yt-row-info" class="yt-row-info"></div>
+  </div>
+</div>
+
 <script>
 let DATA = {};
 let currentKey = null;
@@ -249,6 +267,116 @@ const ORDERED_KEYS = ['Lower Manhattan', 'Black Hubba', 'Jerome Banks', 'Les Col
 const CSV_LOCATIONS = {};
 ORDERED_KEYS.forEach(k => CSV_LOCATIONS[k] = 'data/' + encodeURIComponent(k + '.csv'));
 const loadPromises = {};
+
+/* ===============
+   YOUTUBE IFRAME API & LOOP LOGIC
+================= */
+let ytPlayer = null;
+let ytReady = false;
+let ytLoopInterval;
+let currentLoopStart = 0;
+let currentLoopEnd = 0;
+let initialSnapDone = false;
+
+const ytScriptTag = document.createElement('script');
+ytScriptTag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(ytScriptTag, firstScriptTag);
+
+window.onYouTubeIframeAPIReady = function() { ytReady = true; };
+
+function extractYTId(url) {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function onPlayerStateChange(event) {
+  if (event.data === YT.PlayerState.PLAYING) {
+    if (!initialSnapDone && currentLoopStart > 0) {
+      if (Math.abs(ytPlayer.getCurrentTime() - currentLoopStart) > 0.1) ytPlayer.seekTo(currentLoopStart, true);
+      initialSnapDone = true;
+    }
+    clearInterval(ytLoopInterval);
+    ytLoopInterval = setInterval(() => {
+      if (currentLoopEnd > 0 && ytPlayer.getCurrentTime() >= currentLoopEnd) {
+        ytPlayer.seekTo(currentLoopStart, true);
+      }
+    }, 10);
+  } else {
+    clearInterval(ytLoopInterval);
+  }
+}
+
+function initYTPlayer(videoId, start) {
+  if(!ytReady) { setTimeout(() => initYTPlayer(videoId, start), 100); return; }
+  if(!ytPlayer) {
+    ytPlayer = new YT.Player('yt-player-div', {
+      height: '100%', width: '100%', videoId: videoId,
+      playerVars: { 'autoplay': 1, 'fs': 1, 'rel': 0, 'playsinline': 1, 'start': Math.floor(start) },
+      events: { 'onStateChange': onPlayerStateChange }
+    });
+  } else {
+    ytPlayer.loadVideoById({videoId: videoId, startSeconds: start});
+  }
+}
+
+function openYTModal(key, num, type) {
+  const row = DATA[key].rows.find(r => r.num === String(num));
+  if(!row) return;
+
+  const url = type === 'time' ? row.link : row.sourceLink;
+  const start = type === 'time' ? row.startSec : row.fStartSec;
+  const end = type === 'time' ? row.endSec : row.fEndSec;
+  
+  const videoId = extractYTId(url);
+  if(!videoId) { window.open(url, '_blank'); return; }
+
+  currentLoopStart = start || 0;
+  currentLoopEnd = end || 0;
+  initialSnapDone = false;
+
+  const modal = document.getElementById('yt-modal');
+  const content = modal.querySelector('.yt-modal-content');
+  const infoWrap = document.getElementById('yt-row-info');
+
+  modal.dataset.key = key;
+  modal.dataset.num = num;
+
+  const stanceClass = row.stance.toLowerCase();
+  const timeCell = row.link ? `<a class="time-link" href="javascript:void(0)">${row.time}</a>` : row.time;
+  const sourceCell = row.sourceLink ? `<a class="source-link" href="javascript:void(0)">${row.source}</a>` : row.source;
+  
+  infoWrap.innerHTML = `
+      <table><tbody>
+          <tr class="${row.done === 1 ? 'done-row' : ''}">
+              <td class="num-cell" style="color:var(--muted); font-size:10px; width:40px;">${row.num}</td>
+              <td class="time-cell" style="color:var(--muted); font-size:11px; white-space:nowrap;">${timeCell}</td>
+              <td><span class="stance-badge ${stanceClass}">${row.stance}</span></td>
+              <td class="skater-cell" style="font-weight:700; color:var(--text);">${row.skater}</td>
+              <td class="trick-cell" style="color:#ccc;">${row.trick}</td>
+              <td class="source-cell" style="color:var(--muted); font-size:11px; font-style:italic;">${sourceCell}</td>
+              <td class="done-cell" style="text-align:center; width:1%;"><input type="checkbox" class="done-checkbox yt-modal-cb" ${row.done === 1 ? 'checked' : ''} onchange="toggleDone('${key}','${row.num}',this)"></td>
+          </tr>
+      </tbody></table>
+  `;
+
+  content.classList.toggle('checked', row.done === 1);
+  modal.classList.add('visible');
+  initYTPlayer(videoId, currentLoopStart);
+}
+
+function closeYTModal() {
+  if (ytPlayer && typeof ytPlayer.stopVideo === 'function') ytPlayer.stopVideo();
+  clearInterval(ytLoopInterval);
+  document.getElementById('yt-modal').classList.remove('visible');
+}
+
+document.getElementById('yt-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeYTModal();
+});
+
 
 /* ===============
    SESSIONSIM LOSSLESS BASE36 ENGINE
@@ -266,19 +394,16 @@ const SESSIONSIM = (() => {
         while (n > 0n) { res = B36[Number(n % base)] + res; n /= base; }
         return res;
     }
-
     function fromB36(s) {
         let res = 0n; let base = 36n;
         for (let i = 0; i < s.length; i++) res = res * base + BigInt(B36.indexOf(s[i]));
         return res;
     }
-
     function packBits(arr) {
         let mask = 0n;
         for (let i = 0; i < arr.length; i++) { if (arr[i]) mask |= (1n << BigInt(i)); }
         return mask;
     }
-
     function unpackBits(mask, size) {
         let arr = [];
         for (let i = 0; i < size; i++) { arr.push((mask & (1n << BigInt(i))) !== 0n); }
@@ -297,11 +422,9 @@ const SESSIONSIM = (() => {
                 else if (checkedCount === MAP_SIZES[i]) code += FULL_REF[i];
                 else code += toB36(packBits(state.maps[i]));
             }
-
             if (state.total === 0) code += EMPTY_REF[9];
             else if (state.total === TOTAL_MAX) code += FULL_REF[9];
             else code += toB36(BigInt(state.total));
-
             return code;
         },
         decode: function(input) {
@@ -324,14 +447,13 @@ const SESSIONSIM = (() => {
             if (tTotal === EMPTY_REF[9]) state.total = 0;
             else if (tTotal === FULL_REF[9]) state.total = TOTAL_MAX;
             else state.total = Number(fromB36(tTotal));
-
             return state;
         }
     };
 })();
 
 /* ===============
-   CORE LOGIC
+   CORE LOGIC & CSV PARSING
 ================= */
 function parseCsvLine(line) {
   const out = []; let cur = ''; let inQ = false;
@@ -346,6 +468,12 @@ function parseCsvLine(line) {
 function escapeHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function isHttpToken(s) { return /^https?:\/\//i.test(String(s || '').trim()); }
 
+function secondsFromYoutubeUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  let m = url.match(/[?&#]t=(\d+)s?(?!\d)/i); if (m) return parseInt(m[1], 10);
+  m = url.match(/[?&#]t=(\d+)/); return m ? parseInt(m[1], 10) : null;
+}
+
 function parseLocationCsv(key, text) {
   const lines = text.split(/\r?\n/);
   let headerIdx = -1, col = null;
@@ -353,7 +481,11 @@ function parseLocationCsv(key, text) {
     const cells = parseCsvLine(lines[i]);
     if (cells.includes('Time') && cells.includes('Stance')) {
       headerIdx = i; const idx = (n) => cells.indexOf(n);
-      col = { num: idx('#'), time: idx('Time'), stance: idx('Stance'), skater: idx('Skater'), trick: idx('Trick'), location: idx('Location'), source: idx('Film Source'), done: idx('Done') };
+      col = { 
+        num: idx('#'), time: idx('Time'), url: idx('URL'), start: idx('Start_Seconds'), end: idx('End_Seconds'),
+        stance: idx('Stance'), skater: idx('Skater'), trick: idx('Trick'), location: idx('Location'), 
+        source: idx('Film Source'), fUrl: idx('Film_URL'), fStart: idx('F_Start_Seconds'), fEnd: idx('F_End_Seconds'), done: idx('Done') 
+      };
       break;
     }
   }
@@ -366,14 +498,26 @@ function parseLocationCsv(key, text) {
     const num = cells[col.num] || (rows.length + 1).toString().padStart(2, '0');
     const saved = localStorage.getItem(`progress_${key}_${num}`);
     let doneVal = (saved !== null) ? parseInt(saved, 10) : 0; 
+
+    let link = col.url >= 0 && cells[col.url] ? cells[col.url] : (isHttpToken(cells[col.time+1]) ? cells[col.time+1] : null);
+    let fLink = col.fUrl >= 0 && cells[col.fUrl] ? cells[col.fUrl] : (isHttpToken(cells[col.source+1]) ? cells[col.source+1] : null);
+    
+    let sSec = col.start >= 0 && cells[col.start] ? parseFloat(cells[col.start]) : null;
+    let eSec = col.end >= 0 && cells[col.end] ? parseFloat(cells[col.end]) : null;
+    let fsSec = col.fStart >= 0 && cells[col.fStart] ? parseFloat(cells[col.fStart]) : null;
+    let feSec = col.fEnd >= 0 && cells[col.fEnd] ? parseFloat(cells[col.fEnd]) : null;
+    
+    if (sSec === null && link) sSec = secondsFromYoutubeUrl(link);
+    if (fsSec === null && fLink) fsSec = secondsFromYoutubeUrl(fLink);
+
     rows.push({
       originalKey: key, 
-      num, time: cells[col.time],
-      link: isHttpToken(cells[col.time+1]) ? cells[col.time+1] : null,
+      num, time: cells[col.time], link: link,
+      startSec: sSec || 0, endSec: eSec || 0,
       stance: cells[col.stance], skater: cells[col.skater], trick: cells[col.trick],
       location: col.location >= 0 ? cells[col.location] : '',
-      source: cells[col.source] || '',
-      sourceLink: isHttpToken(cells[col.source+1]) ? cells[col.source+1] : null,
+      source: cells[col.source] || '', sourceLink: fLink,
+      fStartSec: fsSec || 0, fEndSec: feSec || 0,
       done: doneVal
     });
   }
@@ -390,9 +534,7 @@ async function ensureLocationLoaded(key) {
 
 function getAllChallenges() {
   const allRows = [];
-  ORDERED_KEYS.forEach(key => {
-    if (DATA[key]) allRows.push(...DATA[key].rows);
-  });
+  ORDERED_KEYS.forEach(key => { if (DATA[key]) allRows.push(...DATA[key].rows); });
   return allRows;
 }
 
@@ -429,11 +571,7 @@ function updateAllProgress() {
   if (currentKey && currentKey !== 'home') {
     const panel = document.getElementById(`view-${currentKey}`);
     if (panel) {
-      const loc = currentKey === 'all_challenges' ? {
-        total: 335,
-        done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0)
-      } : DATA[currentKey];
-      
+      const loc = currentKey === 'all_challenges' ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0) } : DATA[currentKey];
       const vals = panel.querySelectorAll('.loc-stat .val');
       if (vals.length >= 3) {
         vals[0].textContent = loc.done_count;
@@ -445,12 +583,7 @@ function updateAllProgress() {
 }
 
 function sortTable(key, col) {
-  if (currentSort.col === col) {
-    currentSort.dir *= -1;
-  } else {
-    currentSort.col = col;
-    currentSort.dir = 1;
-  }
+  if (currentSort.col === col) { currentSort.dir *= -1; } else { currentSort.col = col; currentSort.dir = 1; }
   const rows = key === 'all_challenges' ? getAllChallenges() : DATA[key].rows;
   const wrap = document.getElementById(`table-wrap-${key.replace(/\s/g,'_')}`);
   if (wrap) wrap.innerHTML = buildTable(rows, key);
@@ -467,41 +600,24 @@ function buildTable(rows, key) {
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(r => 
-      r.skater.toLowerCase().includes(q) || 
-      r.trick.toLowerCase().includes(q) ||
-      r.num.toLowerCase().includes(q) ||
-      r.stance.toLowerCase().includes(q) ||
-      r.time.toLowerCase().includes(q) ||
-      (r.source && r.source.toLowerCase().includes(q))
+      r.skater.toLowerCase().includes(q) || r.trick.toLowerCase().includes(q) || r.num.toLowerCase().includes(q) || r.stance.toLowerCase().includes(q) || r.time.toLowerCase().includes(q) || (r.source && r.source.toLowerCase().includes(q))
     );
   }
 
   if (currentSort.col) {
     filtered.sort((a, b) => {
-      let av = a[currentSort.col];
-      let bv = b[currentSort.col];
-      if (currentSort.col === 'num') {
-        return (parseInt(av, 10) - parseInt(bv, 10)) * currentSort.dir;
-      }
-      if (currentSort.col === 'done') {
-        return (av - bv) * currentSort.dir;
-      }
-      av = (av || '').toString().toLowerCase();
-      bv = (bv || '').toString().toLowerCase();
+      let av = a[currentSort.col]; let bv = b[currentSort.col];
+      if (currentSort.col === 'num') return (parseInt(av, 10) - parseInt(bv, 10)) * currentSort.dir;
+      if (currentSort.col === 'done') return (av - bv) * currentSort.dir;
+      av = (av || '').toString().toLowerCase(); bv = (bv || '').toString().toLowerCase();
       return av.localeCompare(bv) * currentSort.dir;
     });
   }
 
   const isAll = key === 'all_challenges';
   const cols = [
-    { label: '#', key: 'num' },
-    { label: 'Time', key: 'time' },
-    { label: 'Stance', key: 'stance' },
-    { label: 'Skater', key: 'skater' },
-    { label: 'Trick', key: 'trick' },
-    ...(isAll ? [{ label: 'Location', key: 'originalKey' }] : []),
-    { label: 'Film Source', key: 'source' },
-    { label: 'Done', key: 'done' }
+    { label: '#', key: 'num' }, { label: 'Time', key: 'time' }, { label: 'Stance', key: 'stance' }, { label: 'Skater', key: 'skater' }, { label: 'Trick', key: 'trick' },
+    ...(isAll ? [{ label: 'Location', key: 'originalKey' }] : []), { label: 'Film Source', key: 'source' }, { label: 'Done', key: 'done' }
   ];
 
   let html = `<table class="challenge-table"><thead><tr>`;
@@ -516,11 +632,11 @@ function buildTable(rows, key) {
     const toggleKey = isAll ? r.originalKey : key;
     html += `<tr class="${r.done === 1 ? 'done-row' : ''}">
       <td>${r.num}</td>
-      <td>${r.link ? `<a class="time-link" href="${r.link}" target="_blank">${r.time}</a>` : r.time}</td>
+      <td>${r.link ? `<a class="time-link" href="javascript:void(0)" onclick="openYTModal('${toggleKey}','${r.num}','time')">${r.time}</a>` : r.time}</td>
       <td><span class="stance-badge ${r.stance.toLowerCase()}">${r.stance}</span></td>
       <td>${r.skater}</td><td>${r.trick}</td>
       ${isAll ? `<td>${r.originalKey}</td>` : ''}
-      <td>${r.sourceLink ? `<a class="source-link" href="${r.sourceLink}" target="_blank">${r.source}</a>` : r.source}</td>
+      <td>${r.sourceLink ? `<a class="source-link" href="javascript:void(0)" onclick="openYTModal('${toggleKey}','${r.num}','source')">${r.source}</a>` : r.source}</td>
       <td class="done-cell"><input type="checkbox" class="done-checkbox" ${r.done === 1 ? 'checked' : ''} onchange="toggleDone('${toggleKey}','${r.num}',this)"></td>
     </tr>`;
   });
@@ -529,12 +645,7 @@ function buildTable(rows, key) {
 
 function buildPanel(key) {
   const isAll = key === 'all_challenges';
-  const loc = isAll ? {
-    total: 335,
-    done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0),
-    rows: getAllChallenges()
-  } : DATA[key];
-
+  const loc = isAll ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0), rows: getAllChallenges() } : DATA[key];
   const pct = Math.round((loc.done_count / loc.total) * 100) || 0;
 
   return `
@@ -555,12 +666,8 @@ function buildPanel(key) {
         <input class="search-box" type="text" placeholder="Search #, Stance, Skater..." oninput="setSearch(this.value)">
       </div>
     </div>
-    <div id="table-wrap-${key.replace(/\s/g,'_')}">
-      ${buildTable(loc.rows, key)}
-    </div>
-    <div class="footer-nav">
-      <button class="back-home-btn" onclick="showView('home')">← Home</button>
-    </div>
+    <div id="table-wrap-${key.replace(/\s/g,'_')}">${buildTable(loc.rows, key)}</div>
+    <div class="footer-nav"><button class="back-home-btn" onclick="showView('home')">← Home</button></div>
   `;
 }
 
@@ -570,16 +677,32 @@ function toggleDone(key, num, cb) {
     row.done = cb.checked ? 1 : 0;
     localStorage.setItem(`progress_${key}_${num}`, row.done);
     DATA[key].done_count = DATA[key].rows.filter(r => r.done === 1).length;
+    
+    // Sync table row UI
     cb.closest('tr').classList.toggle('done-row', cb.checked);
+    
+    // Sync modal UI dynamically if open
+    const ytModal = document.getElementById('yt-modal');
+    if (ytModal && ytModal.classList.contains('visible') && ytModal.dataset.key === key && ytModal.dataset.num === String(num)) {
+        const content = ytModal.querySelector('.yt-modal-content');
+        content.classList.toggle('checked', cb.checked);
+        const modalCb = document.querySelector('#yt-modal .yt-modal-cb');
+        if (modalCb && modalCb !== cb) modalCb.checked = cb.checked;
+        if (modalCb) modalCb.closest('tr').classList.toggle('done-row', cb.checked);
+        
+        // Ensure main table is synced if toggled from modal
+        const mainCb = document.querySelector(`#view-${currentKey.replace(/\s/g,'_')} .challenge-table input[onchange*="'${num}'"]`);
+        if (mainCb && mainCb !== cb) {
+            mainCb.checked = cb.checked;
+            mainCb.closest('tr').classList.toggle('done-row', cb.checked);
+        }
+    }
     updateAllProgress();
   }
 }
 
 function resetAllProgress() {
-  if (confirm("Wipe your local progress entirely? This cannot be undone.")) { 
-    localStorage.clear(); 
-    location.reload(); 
-  }
+  if (confirm("Wipe your local progress entirely? This cannot be undone.")) { localStorage.clear(); location.reload(); }
 }
 
 /* ===============
@@ -587,9 +710,7 @@ function resetAllProgress() {
 ================= */
 function closeModal() { document.getElementById('save-modal').classList.remove('visible'); }
 
-document.getElementById('save-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
+document.getElementById('save-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 
 async function handleExport() {
   await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
@@ -600,21 +721,17 @@ async function handleExport() {
     t += arr.filter(Boolean).length;
     return arr;
   });
-  
   const code = SESSIONSIM.encode({ maps, total: t });
-  
   document.getElementById('modal-title').innerText = "Export Save Code";
   document.getElementById('modal-desc').innerText = "Copy this code. You can paste it on another device to restore your exact progress losslessly.";
   const input = document.getElementById('modal-input');
   input.value = code; input.readOnly = true;
-  
   const btn = document.getElementById('modal-action-btn');
   btn.innerText = "Copy to Clipboard";
   btn.onclick = () => {
     navigator.clipboard.writeText(code).catch(()=>{});
-    input.select(); document.execCommand("copy"); // fallback
-    btn.innerText = "Copied!";
-    setTimeout(() => btn.innerText = "Copy to Clipboard", 2000);
+    input.select(); document.execCommand("copy");
+    btn.innerText = "Copied!"; setTimeout(() => btn.innerText = "Copy to Clipboard", 2000);
   };
   document.getElementById('save-modal').classList.add('visible');
 }
@@ -624,7 +741,6 @@ function handleImport() {
   document.getElementById('modal-desc').innerText = "Paste your code below. WARNING: Overwrites current progress.";
   const input = document.getElementById('modal-input');
   input.value = ""; input.readOnly = false;
-  
   const btn = document.getElementById('modal-action-btn');
   btn.innerText = "Load Progress";
   btn.onclick = async () => {
@@ -633,20 +749,15 @@ function handleImport() {
       try {
         await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
         const state = SESSIONSIM.decode(code);
-        
         ORDERED_KEYS.forEach((k, i) => {
           if(DATA[k] && DATA[k].rows) {
             DATA[k].rows.forEach((r, idx) => {
-              const v = state.maps[i][idx] ? 1 : 0;
-              r.done = v;
-              localStorage.setItem(`progress_${k}_${r.num}`, v);
+              const v = state.maps[i][idx] ? 1 : 0; r.done = v; localStorage.setItem(`progress_${k}_${r.num}`, v);
             });
             DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
           }
         });
-        updateAllProgress();
-        closeModal();
-        if(currentKey && currentKey !== 'home') showView(currentKey);
+        updateAllProgress(); closeModal(); if(currentKey && currentKey !== 'home') showView(currentKey);
       } catch (e) { alert("Invalid save code format."); }
     }
   };
@@ -660,26 +771,17 @@ function updateSticky() {
   const header = document.getElementById('main-header');
   const activePanel = document.getElementById(`view-${currentKey}`);
   
-  if (currentKey === 'home' || !activePanel) {
-    header.style.transform = 'translateY(0)';
-    return;
-  }
+  if (currentKey === 'home' || !activePanel) { header.style.transform = 'translateY(0)'; return; }
 
   const spotGroup = activePanel.querySelector('.spot-header-group');
   const ths = activePanel.querySelectorAll('.challenge-table th');
 
   if (window.scrollY > 50) {
     header.style.transform = 'translateY(-100%)';
-    if (spotGroup) {
-       spotGroup.style.top = '0px';
-       ths.forEach(th => th.style.top = spotGroup.offsetHeight + 'px');
-    }
+    if (spotGroup) { spotGroup.style.top = '0px'; ths.forEach(th => th.style.top = spotGroup.offsetHeight + 'px'); }
   } else {
     header.style.transform = 'translateY(0)';
-    if (spotGroup) {
-       spotGroup.style.top = header.offsetHeight + 'px';
-       ths.forEach(th => th.style.top = (header.offsetHeight + spotGroup.offsetHeight) + 'px');
-    }
+    if (spotGroup) { spotGroup.style.top = header.offsetHeight + 'px'; ths.forEach(th => th.style.top = (header.offsetHeight + spotGroup.offsetHeight) + 'px'); }
   }
 }
 
@@ -689,52 +791,26 @@ window.addEventListener('resize', updateSticky);
 async function showView(view) {
   document.querySelectorAll('.home-panel, .location-panel').forEach(p => p.classList.remove('visible'));
   currentKey = view; currentFilter = 'all'; searchQuery = ''; currentSort = { col: null, dir: 1 };
-  
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   
-  if (view === 'home') { 
-    document.getElementById('view-home').classList.add('visible'); 
-  } else {
+  if (view === 'home') { document.getElementById('view-home').classList.add('visible'); } 
+  else {
     let panel = document.getElementById(`view-${view}`);
     if (!panel && view === 'all_challenges') {
-        panel = document.createElement('div');
-        panel.id = `view-all_challenges`;
-        panel.className = 'location-panel';
+        panel = document.createElement('div'); panel.id = `view-all_challenges`; panel.className = 'location-panel';
         document.querySelector('main').appendChild(panel);
     }
-
     if (panel) {
-      if (view === 'all_challenges') {
-        await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
-      } else {
-        await ensureLocationLoaded(view);
-      }
-      
-      panel.innerHTML = buildPanel(view);
-      panel.classList.add('visible');
+      if (view === 'all_challenges') await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+      else await ensureLocationLoaded(view);
+      panel.innerHTML = buildPanel(view); panel.classList.add('visible');
     }
   }
-  window.scrollTo(0, 0);
-  setTimeout(updateSticky, 50); 
+  window.scrollTo(0, 0); setTimeout(updateSticky, 50); 
 }
 
-function setFilter(f, btn) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows;
-  const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`);
-  if (wrap) wrap.innerHTML = buildTable(rows, currentKey);
-  updateSticky();
-}
-
-function setSearch(val) {
-  searchQuery = val;
-  const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows;
-  const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`);
-  if (wrap) wrap.innerHTML = buildTable(rows, currentKey);
-  updateSticky();
-}
+function setFilter(f, btn) { currentFilter = f; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows; const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`); if (wrap) wrap.innerHTML = buildTable(rows, currentKey); updateSticky(); }
+function setSearch(val) { searchQuery = val; const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows; const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`); if (wrap) wrap.innerHTML = buildTable(rows, currentKey); updateSticky(); }
 
 // Initialization
 ORDERED_KEYS.forEach(k => ensureLocationLoaded(k));
