@@ -42,6 +42,7 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   .spot-header-group { position: sticky; z-index: 900; background: var(--bg); transition: top 0.3s ease; padding-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-top: -16px; }
+  
   .loc-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 16px; }
   .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); text-transform: uppercase; word-break: break-word; }
   .loc-stats { display: flex; gap: clamp(16px, 3vw, 24px); align-items: center; flex-wrap: wrap; }
@@ -105,7 +106,7 @@
   .time-link, .source-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; cursor: pointer; }
   .time-link:hover, .source-link:hover { border-bottom-color: var(--accent); }
 
-  /* COMPRESSION MODAL CSS */
+  /* CUSTOM MODAL CSS */
   .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px); cursor: pointer; }
   .modal-overlay.visible { display: flex; animation: fadeIn 0.2s; }
   .modal-content { background: var(--bg2); border: 2px solid var(--accent); padding: 32px; max-width: 500px; width: 90%; color: var(--text); font-family: 'Space Mono', monospace; cursor: default; }
@@ -269,7 +270,7 @@ ORDERED_KEYS.forEach(k => CSV_LOCATIONS[k] = 'data/' + encodeURIComponent(k + '.
 const loadPromises = {};
 
 /* ===============
-   YOUTUBE IFRAME API & LOOP LOGIC
+   YOUTUBE IFRAME API & LOOP LOGIC (FIXED PARSING & INTERVALS)
 ================= */
 let ytPlayer = null;
 let ytReady = false;
@@ -281,31 +282,38 @@ let initialSnapDone = false;
 const ytScriptTag = document.createElement('script');
 ytScriptTag.src = "https://www.youtube.com/iframe_api";
 const firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(ytScriptTag, firstScriptTag);
+if(firstScriptTag) firstScriptTag.parentNode.insertBefore(ytScriptTag, firstScriptTag);
+else document.head.appendChild(ytScriptTag);
 
 window.onYouTubeIframeAPIReady = function() { ytReady = true; };
 
-function extractYTId(url) {
-  if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+function extractYTId(urlStr) {
+  if (!urlStr) return null;
+  try {
+    const url = new URL(urlStr);
+    if (url.hostname.includes('youtube.com')) return url.searchParams.get('v');
+    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
+  } catch(e) {}
+  
+  const vIndex = urlStr.indexOf('v=');
+  if (vIndex !== -1) {
+    const ampIndex = urlStr.indexOf('&', vIndex);
+    return urlStr.substring(vIndex + 2, ampIndex !== -1 ? ampIndex : urlStr.length);
+  }
+  const beIndex = urlStr.indexOf('youtu.be/');
+  if (beIndex !== -1) {
+    const queryIndex = urlStr.indexOf('?', beIndex);
+    return urlStr.substring(beIndex + 9, queryIndex !== -1 ? queryIndex : urlStr.length);
+  }
+  return null;
 }
 
 function onPlayerStateChange(event) {
   if (event.data === YT.PlayerState.PLAYING) {
     if (!initialSnapDone && currentLoopStart > 0) {
-      if (Math.abs(ytPlayer.getCurrentTime() - currentLoopStart) > 0.1) ytPlayer.seekTo(currentLoopStart, true);
+      if (Math.abs(ytPlayer.getCurrentTime() - currentLoopStart) > 0.5) ytPlayer.seekTo(currentLoopStart, true);
       initialSnapDone = true;
     }
-    clearInterval(ytLoopInterval);
-    ytLoopInterval = setInterval(() => {
-      if (currentLoopEnd > 0 && ytPlayer.getCurrentTime() >= currentLoopEnd) {
-        ytPlayer.seekTo(currentLoopStart, true);
-      }
-    }, 10);
-  } else {
-    clearInterval(ytLoopInterval);
   }
 }
 
@@ -365,6 +373,18 @@ function openYTModal(key, num, type) {
   content.classList.toggle('checked', row.done === 1);
   modal.classList.add('visible');
   initYTPlayer(videoId, currentLoopStart);
+
+  // Persistent Interval logic
+  clearInterval(ytLoopInterval);
+  if (currentLoopEnd > 0) {
+      ytLoopInterval = setInterval(() => {
+          if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+              if (ytPlayer.getCurrentTime() >= currentLoopEnd) {
+                  ytPlayer.seekTo(currentLoopStart, true);
+              }
+          }
+      }, 50);
+  }
 }
 
 function closeYTModal() {
@@ -479,8 +499,9 @@ function parseLocationCsv(key, text) {
   let headerIdx = -1, col = null;
   for (let i = 0; i < lines.length; i++) {
     const cells = parseCsvLine(lines[i]);
-    if (cells.includes('Time') && cells.includes('Stance')) {
-      headerIdx = i; const idx = (n) => cells.indexOf(n);
+    const trimmed = cells.map(c => c.trim()); // FIXED TRIMMING BUG
+    if (trimmed.includes('Time') && trimmed.includes('Stance')) {
+      headerIdx = i; const idx = (n) => trimmed.indexOf(n);
       col = { 
         num: idx('#'), time: idx('Time'), url: idx('URL'), start: idx('Start_Seconds'), end: idx('End_Seconds'),
         stance: idx('Stance'), skater: idx('Skater'), trick: idx('Trick'), location: idx('Location'), 
