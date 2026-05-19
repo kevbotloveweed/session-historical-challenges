@@ -51,4 +51,791 @@
   .loc-stat .key { font-size: 9px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; }
 
   .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
-  .fil
+  .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; cursor: pointer; text-transform: uppercase; }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); }
+  .search-box { margin-left: auto; background: var(--bg2); border: 1px solid var(--border); color: var(--text); font-family: 'Space Mono', monospace; font-size: 11px; padding: 6px 12px; width: 200px; outline: none; }
+
+  .challenge-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; margin-top: 10px; }
+  .challenge-table th { position: sticky; z-index: 850; background: var(--bg); font-size: 9px; color: var(--muted); padding: 12px; text-align: left; text-transform: uppercase; cursor: pointer; user-select: none; transition: top 0.3s ease, color 0.15s; border-bottom: 2px solid var(--accent); }
+  .challenge-table th:hover { color: var(--accent); }
+  .challenge-table th.sorted { color: var(--accent); }
+  .challenge-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .challenge-table tbody tr { transition: background 0.1s; }
+  .challenge-table tbody tr:hover { background: var(--bg3); }
+  .challenge-table tbody tr.done-row td:not(.done-cell) { opacity: 0.35; } 
+
+  .sort-indicator { margin-left: 4px; opacity: 0.5; }
+  .sort-indicator.active { opacity: 1; color: var(--accent); }
+
+  .stance-badge { font-size: 9px; padding: 2px 7px; border: 1px solid; text-transform: uppercase; display: inline-block; }
+  .stance-badge.regular { border-color: #4488ff; color: #4488ff; }
+  .stance-badge.goofy { border-color: #ff8844; color: #ff8844; }
+  .stance-badge.any { border-color: var(--muted); color: var(--muted); }
+
+  .done-checkbox { appearance: none; width: 18px; height: 18px; border: 2px solid var(--border); cursor: pointer; position: relative; transition: all 0.2s; }
+  .done-checkbox:checked { background: var(--done); border-color: var(--done); box-shadow: 0 0 12px var(--done); }
+  .done-checkbox:checked::after { content: '✓'; color: #000; position: absolute; left: 3px; top: -2px; font-weight: bold; }
+
+  .home-panel { display: none; }
+  .home-panel.visible { display: block; }
+  .home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 24px; }
+  .city-card { background: var(--bg2); border: 1px solid var(--border); padding: 24px; }
+  .city-name { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); margin-bottom: 12px; }
+  .city-location-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .loc-mini-bar { display: flex; align-items: center; gap: 8px; }
+  .loc-mini-progress { width: 60px; height: 2px; background: var(--border); }
+  .loc-mini-fill { height: 100%; background: var(--accent); }
+  .loc-mini-fill.complete { background: var(--done); }
+  .loc-mini-pct { font-size: 10px; color: var(--muted); min-width: 32px; text-align: right; }
+  
+  .total-row { background: var(--bg2); border: 2px solid var(--accent); padding: 24px; display: flex; justify-content: space-between; align-items: center; margin-top: 24px; cursor: pointer; transition: opacity 0.2s; }
+  .total-row:hover { opacity: 0.8; }
+  .total-label { font-family: 'Bebas Neue', sans-serif; font-size: 28px; }
+  .total-value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); }
+  
+  .footer-actions { margin-top: 40px; text-align: center; border-top: 1px solid var(--border); padding-top: 30px; padding-bottom: 40px; width: 100%; }
+  .action-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); font-family: 'Space Mono', monospace; font-size: 10px; padding: 8px 20px; cursor: pointer; text-transform: uppercase; transition: 0.2s; letter-spacing: 0.1em; }
+  .action-btn:hover { background: var(--accent); color: #000; }
+  .reset-btn { background: transparent; border: 1px solid var(--accent2); color: var(--accent2); font-family: 'Space Mono', monospace; font-size: 9px; padding: 6px 12px; cursor: pointer; text-transform: uppercase; opacity: 0.6; transition: 0.2s; margin-top: 16px; }
+  .reset-btn:hover { opacity: 1; background: rgba(255, 60, 0, 0.1); }
+  
+  .back-home-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 16px; cursor: pointer; text-transform: uppercase; transition: 0.15s; margin-bottom: 16px; display: inline-block;}
+  .back-home-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .footer-nav { margin-top: 30px; padding: 20px 0; border-top: 1px solid var(--border); display: flex; justify-content: center; }
+
+  .time-link, .source-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; cursor: pointer; }
+  .time-link:hover, .source-link:hover { border-bottom-color: var(--accent); }
+
+  /* CUSTOM MODAL CSS */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px); cursor: pointer; }
+  .modal-overlay.visible { display: flex; animation: fadeIn 0.2s; }
+  .modal-content { background: var(--bg2); border: 2px solid var(--accent); padding: 32px; max-width: 500px; width: 90%; color: var(--text); font-family: 'Space Mono', monospace; cursor: default; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .modal-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--accent); letter-spacing: 0.05em; margin: 0; line-height: 1; }
+  .close-modal { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; transition: 0.2s; font-family: 'Space Mono', monospace; }
+  .close-modal:hover { color: var(--accent2); }
+  .modal-desc { font-size: 11px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+  .modal-input { width: 100%; height: 100px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; font-family: monospace; font-size: 14px; text-align: center; margin-bottom: 24px; resize: none; outline: none; transition: border-color 0.15s; letter-spacing: 0.1em; word-wrap: break-word;}
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-btn { width: 100%; background: var(--accent); color: #000; border: none; padding: 12px; font-family: 'Space Mono', monospace; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.2s; letter-spacing: 0.1em; }
+  .modal-btn:hover { background: #fff; }
+
+  /* YT PLAYER MODAL CSS */
+  #yt-modal { background: rgba(0,0,0,0.9); cursor: pointer; }
+  .yt-modal-content { background: var(--bg2); border: 2px solid var(--accent); max-width: 900px; width: 95%; display: flex; flex-direction: column; position: relative; transition: border-color 0.3s ease, box-shadow 0.3s ease; cursor: default; }
+  .yt-modal-content.checked { border-color: var(--done); box-shadow: 0 0 40px rgba(57, 255, 20, 0.4); }
+  .yt-close-btn { position: absolute; top: -36px; right: 0; background: transparent; border: none; color: var(--text); font-family: 'Space Mono', monospace; font-size: 24px; cursor: pointer; transition: color 0.2s; }
+  .yt-close-btn:hover { color: var(--accent2); }
+  #yt-player-wrap { width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .yt-row-info { padding: 16px; background: var(--bg); border-top: 1px solid var(--border); }
+  .yt-row-info table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .yt-row-info td { padding: 10px 12px; vertical-align: middle; border-bottom: none; }
+
+  /* MOBILE RESPONSIVE FIXES */
+  @media (max-width: 768px) {
+    body { zoom: 0.75; }
+    header, nav, main { padding-left: 16px; padding-right: 16px; }
+    .loc-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .loc-stats { justify-content: flex-start; width: 100%; }
+    .challenge-table { font-size: 11px; }
+    .challenge-table td, .challenge-table th { padding: 8px 6px; }
+    .search-box { margin-left: 0; width: 100%; margin-top: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header id="main-header">
+  <div class="header-title">
+    <h1>Session<br><span>Historical</span></h1>
+    <div class="label">Challenge Tracker</div>
+  </div>
+  <div class="total-progress" onclick="showView('all_challenges')" title="View All Challenges">
+    <div class="prog-label">Total Progress</div>
+    <div class="prog-count">0 / 0</div>
+    <div class="prog-pct">0% Complete</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" style="width: 0%"></div>
+    </div>
+  </div>
+</header>
+
+<nav id="main-nav">
+  <button class="nav-btn active" data-view="home">Home <span class="nav-pct">Overview</span></button>
+  <button class="nav-btn" data-view="Lower Manhattan">Lower Manhattan <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="Black Hubba">Black Hubbas <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="Jerome Banks">Jerome Banks <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="Les Coleman Park">Les Coleman Park <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="Pyramid Ledges">Pyramid Ledges <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="Philly">Philly <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="China Banks">China Banks <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="Pier 7">Pier 7 <span class="nav-pct">...</span></button>
+  <button class="nav-btn" data-view="Global">Global <span class="nav-pct">...</span></button>
+</nav>
+
+<main>
+  <div class="home-panel visible" id="view-home">
+    <div class="home-grid">
+      <div class="city-card">
+        <div class="city-name">New York City</div>
+        <div class="city-locations">
+          <div class="city-location-row" onclick="showView('Lower Manhattan')"><span class="loc-link-name">Lower Manhattan</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+          <div class="city-location-row" onclick="showView('Black Hubba')"><span class="loc-link-name">Black Hubbas</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+          <div class="city-location-row" onclick="showView('Jerome Banks')"><span class="loc-link-name">Jerome Banks</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+          <div class="city-location-row" onclick="showView('Les Coleman Park')"><span class="loc-link-name">Les Coleman Park</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+          <div class="city-location-row" onclick="showView('Pyramid Ledges')"><span class="loc-link-name">Pyramid Ledges</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+        </div>
+      </div>
+      <div class="city-card">
+        <div class="city-name">Philly</div>
+        <div class="city-locations">
+          <div class="city-location-row" onclick="showView('Philly')"><span class="loc-link-name">Philly</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+        </div>
+      </div>
+      <div class="city-card">
+        <div class="city-name">San Francisco</div>
+        <div class="city-locations">
+          <div class="city-location-row" onclick="showView('China Banks')"><span class="loc-link-name">China Banks</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+          <div class="city-location-row" onclick="showView('Pier 7')"><span class="loc-link-name">Pier 7</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+        </div>
+      </div>
+      <div class="city-card">
+        <div class="city-name">Global</div>
+        <div class="city-locations">
+          <div class="city-location-row" onclick="showView('Global')"><span class="loc-link-name">Global Challenges</span><div class="loc-mini-bar"><div class="loc-mini-progress"><div class="loc-mini-fill"></div></div><span class="loc-mini-pct">0%</span></div></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="total-row" onclick="showView('all_challenges')" title="View All Challenges">
+      <span class="total-label">Total Progress</span>
+      <span class="total-value">0 / 0 — 0%</span>
+    </div>
+  </div>
+
+  <!-- PANELS INJECTED DYNAMICALLY -->
+  <div id="view-Lower Manhattan" class="location-panel"></div>
+  <div id="view-Black Hubba" class="location-panel"></div>
+  <div id="view-Jerome Banks" class="location-panel"></div>
+  <div id="view-Les Coleman Park" class="location-panel"></div>
+  <div id="view-Pyramid Ledges" class="location-panel"></div>
+  <div id="view-Philly" class="location-panel"></div>
+  <div id="view-China Banks" class="location-panel"></div>
+  <div id="view-Pier 7" class="location-panel"></div>
+  <div id="view-Global" class="location-panel"></div>
+  <div id="view-all_challenges" class="location-panel"></div>
+
+  <!-- GLOBAL FOOTER ACTIONS -->
+  <div class="footer-actions">
+    <div style="display:flex; gap:16px; justify-content:center; margin-bottom:10px;">
+        <button class="action-btn" onclick="handleExport()">Export Save Code</button>
+        <button class="action-btn" onclick="handleImport()">Import Save Code</button>
+    </div>
+    <button class="reset-btn" onclick="resetAllProgress()">Wipe Local Save</button>
+  </div>
+</main>
+
+<!-- IMPORT/EXPORT MODAL -->
+<div id="save-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modal-title">Save Code</h2>
+      <button class="close-modal" onclick="closeModal()">X</button>
+    </div>
+    <p id="modal-desc" class="modal-desc"></p>
+    <textarea id="modal-input" class="modal-input" spellcheck="false" autocomplete="off"></textarea>
+    <button id="modal-action-btn" class="modal-btn"></button>
+  </div>
+</div>
+
+<!-- YOUTUBE PLAYER MODAL -->
+<div id="yt-modal" class="modal-overlay">
+  <div class="yt-modal-content">
+    <button class="yt-close-btn" onclick="closeYTModal()">X</button>
+    <div id="yt-player-wrap"><div id="yt-player-div"></div></div>
+    <div id="yt-row-info" class="yt-row-info"></div>
+  </div>
+</div>
+
+<script>
+let DATA = {};
+let currentKey = null;
+let currentFilter = 'all';
+let searchQuery = '';
+let currentSort = { col: null, dir: 1 };
+
+const ORDERED_KEYS = ['Lower Manhattan', 'Black Hubba', 'Jerome Banks', 'Les Coleman Park', 'Pyramid Ledges', 'Philly', 'China Banks', 'Pier 7', 'Global'];
+const CSV_LOCATIONS = {};
+ORDERED_KEYS.forEach(k => CSV_LOCATIONS[k] = 'data/' + encodeURIComponent(k + '.csv'));
+const loadPromises = {};
+
+/* ===============
+   YOUTUBE IFRAME API & LOOP LOGIC (FIXED PARSING & INTERVALS)
+================= */
+let ytPlayer = null;
+let ytReady = false;
+let ytLoopInterval;
+let currentLoopStart = 0;
+let currentLoopEnd = 0;
+let initialSnapDone = false;
+
+const ytScriptTag = document.createElement('script');
+ytScriptTag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+if(firstScriptTag) firstScriptTag.parentNode.insertBefore(ytScriptTag, firstScriptTag);
+else document.head.appendChild(ytScriptTag);
+
+window.onYouTubeIframeAPIReady = function() { ytReady = true; };
+
+function extractYTId(urlStr) {
+  if (!urlStr) return null;
+  try {
+    const url = new URL(urlStr);
+    if (url.hostname.includes('youtube.com')) return url.searchParams.get('v');
+    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
+  } catch(e) {}
+  
+  const vIndex = urlStr.indexOf('v=');
+  if (vIndex !== -1) {
+    const ampIndex = urlStr.indexOf('&', vIndex);
+    return urlStr.substring(vIndex + 2, ampIndex !== -1 ? ampIndex : urlStr.length);
+  }
+  const beIndex = urlStr.indexOf('youtu.be/');
+  if (beIndex !== -1) {
+    const queryIndex = urlStr.indexOf('?', beIndex);
+    return urlStr.substring(beIndex + 9, queryIndex !== -1 ? queryIndex : urlStr.length);
+  }
+  return null;
+}
+
+function onPlayerStateChange(event) {
+  if (event.data === YT.PlayerState.PLAYING) {
+    if (!initialSnapDone && currentLoopStart > 0) {
+      if (Math.abs(ytPlayer.getCurrentTime() - currentLoopStart) > 0.5) ytPlayer.seekTo(currentLoopStart, true);
+      initialSnapDone = true;
+    }
+  }
+}
+
+function initYTPlayer(videoId, start) {
+  if(!ytReady) { setTimeout(() => initYTPlayer(videoId, start), 100); return; }
+  if(!ytPlayer) {
+    ytPlayer = new YT.Player('yt-player-div', {
+      height: '100%', width: '100%', videoId: videoId,
+      playerVars: { 'autoplay': 1, 'fs': 1, 'rel': 0, 'playsinline': 1, 'start': Math.floor(start) },
+      events: { 'onStateChange': onPlayerStateChange }
+    });
+  } else {
+    ytPlayer.loadVideoById({videoId: videoId, startSeconds: start});
+  }
+}
+
+function openYTModal(key, num, type) {
+  const row = DATA[key].rows.find(r => r.num === String(num));
+  if(!row) return;
+
+  const url = type === 'time' ? row.link : row.sourceLink;
+  const start = type === 'time' ? row.startSec : row.fStartSec;
+  const end = type === 'time' ? row.endSec : row.fEndSec;
+  
+  const videoId = extractYTId(url);
+  if(!videoId) { window.open(url, '_blank'); return; }
+
+  currentLoopStart = start || 0;
+  currentLoopEnd = end || 0;
+  initialSnapDone = false;
+
+  const modal = document.getElementById('yt-modal');
+  const content = modal.querySelector('.yt-modal-content');
+  const infoWrap = document.getElementById('yt-row-info');
+
+  modal.dataset.key = key;
+  modal.dataset.num = num;
+
+  const stanceClass = row.stance.toLowerCase();
+  const timeCell = row.link ? `<a class="time-link" href="javascript:void(0)">${row.time}</a>` : row.time;
+  const sourceCell = row.sourceLink ? `<a class="source-link" href="javascript:void(0)">${row.source}</a>` : row.source;
+  
+  infoWrap.innerHTML = `
+      <table><tbody>
+          <tr class="${row.done === 1 ? 'done-row' : ''}">
+              <td class="num-cell" style="color:var(--muted); font-size:10px; width:40px;">${row.num}</td>
+              <td class="time-cell" style="color:var(--muted); font-size:11px; white-space:nowrap;">${timeCell}</td>
+              <td><span class="stance-badge ${stanceClass}">${row.stance}</span></td>
+              <td class="skater-cell" style="font-weight:700; color:var(--text);">${row.skater}</td>
+              <td class="trick-cell" style="color:#ccc;">${row.trick}</td>
+              <td class="source-cell" style="color:var(--muted); font-size:11px; font-style:italic;">${sourceCell}</td>
+              <td class="done-cell" style="text-align:center; width:1%;"><input type="checkbox" class="done-checkbox yt-modal-cb" ${row.done === 1 ? 'checked' : ''} onchange="toggleDone('${key}','${row.num}',this)"></td>
+          </tr>
+      </tbody></table>
+  `;
+
+  content.classList.toggle('checked', row.done === 1);
+  modal.classList.add('visible');
+  initYTPlayer(videoId, currentLoopStart);
+
+  // Persistent Interval logic
+  clearInterval(ytLoopInterval);
+  if (currentLoopEnd > 0) {
+      ytLoopInterval = setInterval(() => {
+          if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+              if (ytPlayer.getCurrentTime() >= currentLoopEnd) {
+                  ytPlayer.seekTo(currentLoopStart, true);
+              }
+          }
+      }, 50);
+  }
+}
+
+function closeYTModal() {
+  if (ytPlayer && typeof ytPlayer.stopVideo === 'function') ytPlayer.stopVideo();
+  clearInterval(ytLoopInterval);
+  document.getElementById('yt-modal').classList.remove('visible');
+}
+
+document.getElementById('yt-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeYTModal();
+});
+
+
+/* ===============
+   SESSIONSIM LOSSLESS BASE36 ENGINE
+================= */
+const SESSIONSIM = (() => {
+    const EMPTY_REF = "IDONTSKATE";
+    const FULL_REF = "SESSIONSIM";
+    const MAP_SIZES = [73, 45, 7, 21, 23, 82, 14, 68, 2];
+    const TOTAL_MAX = 335;
+    const B36 = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+    function toB36(n) {
+        if (n === 0n) return "0";
+        let res = ""; let base = 36n;
+        while (n > 0n) { res = B36[Number(n % base)] + res; n /= base; }
+        return res;
+    }
+    function fromB36(s) {
+        let res = 0n; let base = 36n;
+        for (let i = 0; i < s.length; i++) res = res * base + BigInt(B36.indexOf(s[i]));
+        return res;
+    }
+    function packBits(arr) {
+        let mask = 0n;
+        for (let i = 0; i < arr.length; i++) { if (arr[i]) mask |= (1n << BigInt(i)); }
+        return mask;
+    }
+    function unpackBits(mask, size) {
+        let arr = [];
+        for (let i = 0; i < size; i++) { arr.push((mask & (1n << BigInt(i))) !== 0n); }
+        return arr;
+    }
+
+    return {
+        encode: function(state) {
+            if (state.total === 0) return EMPTY_REF;
+            if (state.total === TOTAL_MAX) return FULL_REF;
+
+            let code = "";
+            for (let i = 0; i < 9; i++) {
+                const checkedCount = state.maps[i].filter(Boolean).length;
+                if (checkedCount === 0) code += EMPTY_REF[i];
+                else if (checkedCount === MAP_SIZES[i]) code += FULL_REF[i];
+                else code += toB36(packBits(state.maps[i]));
+            }
+            if (state.total === 0) code += EMPTY_REF[9];
+            else if (state.total === TOTAL_MAX) code += FULL_REF[9];
+            else code += toB36(BigInt(state.total));
+            return code;
+        },
+        decode: function(input) {
+            const code = input.trim();
+            if (code.toUpperCase() === EMPTY_REF) return { maps: MAP_SIZES.map(s => new Array(s).fill(false)), total: 0 };
+            if (code.toUpperCase() === FULL_REF) return { maps: MAP_SIZES.map(s => new Array(s).fill(true)), total: TOTAL_MAX };
+
+            const tokens = code.match(/[a-z0-9]+|[A-Z]/g);
+            if (!tokens || tokens.length !== 10) throw new Error("Invalid Code");
+
+            const state = { maps: [], total: 0 };
+            for (let i = 0; i < 9; i++) {
+                const t = tokens[i];
+                if (t === EMPTY_REF[i]) state.maps.push(new Array(MAP_SIZES[i]).fill(false));
+                else if (t === FULL_REF[i]) state.maps.push(new Array(MAP_SIZES[i]).fill(true));
+                else state.maps.push(unpackBits(fromB36(t), MAP_SIZES[i]));
+            }
+            
+            const tTotal = tokens[9];
+            if (tTotal === EMPTY_REF[9]) state.total = 0;
+            else if (tTotal === FULL_REF[9]) state.total = TOTAL_MAX;
+            else state.total = Number(fromB36(tTotal));
+            return state;
+        }
+    };
+})();
+
+/* ===============
+   CORE LOGIC & CSV PARSING
+================= */
+function parseCsvLine(line) {
+  const out = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) { if (c === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else inQ = false; } else cur += c; }
+    else { if (c === '"') inQ = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; }
+  }
+  out.push(cur); return out.map(s => s.trim());
+}
+
+function escapeHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function isHttpToken(s) { return /^https?:\/\//i.test(String(s || '').trim()); }
+
+function secondsFromYoutubeUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  let m = url.match(/[?&#]t=(\d+)s?(?!\d)/i); if (m) return parseInt(m[1], 10);
+  m = url.match(/[?&#]t=(\d+)/); return m ? parseInt(m[1], 10) : null;
+}
+
+function parseLocationCsv(key, text) {
+  const lines = text.split(/\r?\n/);
+  let headerIdx = -1, col = null;
+  for (let i = 0; i < lines.length; i++) {
+    const cells = parseCsvLine(lines[i]);
+    const trimmed = cells.map(c => c.trim()); // FIXED TRIMMING BUG
+    if (trimmed.includes('Time') && trimmed.includes('Stance')) {
+      headerIdx = i; const idx = (n) => trimmed.indexOf(n);
+      col = { 
+        num: idx('#'), time: idx('Time'), url: idx('URL'), start: idx('Start_Seconds'), end: idx('End_Seconds'),
+        stance: idx('Stance'), skater: idx('Skater'), trick: idx('Trick'), location: idx('Location'), 
+        source: idx('Film Source'), fUrl: idx('Film_URL'), fStart: idx('F_Start_Seconds'), fEnd: idx('F_End_Seconds'), done: idx('Done') 
+      };
+      break;
+    }
+  }
+  if (!col) return null;
+  const rows = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i]; if (!line.trim()) continue;
+    const cells = parseCsvLine(line);
+    if (!cells[col.stance] || !cells[col.skater]) continue;
+    const num = cells[col.num] || (rows.length + 1).toString().padStart(2, '0');
+    const saved = localStorage.getItem(`progress_${key}_${num}`);
+    let doneVal = (saved !== null) ? parseInt(saved, 10) : 0; 
+
+    let link = col.url >= 0 && cells[col.url] ? cells[col.url] : (isHttpToken(cells[col.time+1]) ? cells[col.time+1] : null);
+    let fLink = col.fUrl >= 0 && cells[col.fUrl] ? cells[col.fUrl] : (isHttpToken(cells[col.source+1]) ? cells[col.source+1] : null);
+    
+    let sSec = col.start >= 0 && cells[col.start] ? parseFloat(cells[col.start]) : null;
+    let eSec = col.end >= 0 && cells[col.end] ? parseFloat(cells[col.end]) : null;
+    let fsSec = col.fStart >= 0 && cells[col.fStart] ? parseFloat(cells[col.fStart]) : null;
+    let feSec = col.fEnd >= 0 && cells[col.fEnd] ? parseFloat(cells[col.fEnd]) : null;
+    
+    if (sSec === null && link) sSec = secondsFromYoutubeUrl(link);
+    if (fsSec === null && fLink) fsSec = secondsFromYoutubeUrl(fLink);
+
+    rows.push({
+      originalKey: key, 
+      num, time: cells[col.time], link: link,
+      startSec: sSec || 0, endSec: eSec || 0,
+      stance: cells[col.stance], skater: cells[col.skater], trick: cells[col.trick],
+      location: col.location >= 0 ? cells[col.location] : '',
+      source: cells[col.source] || '', sourceLink: fLink,
+      fStartSec: fsSec || 0, fEndSec: feSec || 0,
+      done: doneVal
+    });
+  }
+  return { rows, total: rows.length, done_count: rows.filter(r => r.done === 1).length, _fromCsv: true };
+}
+
+async function ensureLocationLoaded(key) {
+  if (!CSV_LOCATIONS[key] || (DATA[key] && DATA[key]._fromCsv)) return;
+  if (!loadPromises[key]) {
+    loadPromises[key] = fetch(CSV_LOCATIONS[key]).then(r => r.text()).then(text => { DATA[key] = parseLocationCsv(key, text); updateAllProgress(); }).catch(() => { loadPromises[key] = null; });
+  }
+  await loadPromises[key];
+}
+
+function getAllChallenges() {
+  const allRows = [];
+  ORDERED_KEYS.forEach(key => { if (DATA[key]) allRows.push(...DATA[key].rows); });
+  return allRows;
+}
+
+function updateAllProgress() {
+  let gT = 0, gD = 0;
+  Object.keys(DATA).forEach(k => { gT += DATA[k].total; gD += DATA[k].done_count; });
+  const pct = gT > 0 ? (gD / gT * 100).toFixed(1) : 0;
+  
+  document.querySelector('.prog-count').textContent = `${gD} / ${gT}`;
+  document.querySelector('.prog-pct').textContent = `${pct}% Complete`;
+  document.querySelector('.progress-bar-fill').style.width = pct + '%';
+  if(document.querySelector('.total-value')) document.querySelector('.total-value').textContent = `${gD} / ${gT} — ${pct}%`;
+  
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    const v = btn.dataset.view;
+    if (v !== 'home' && DATA[v]) {
+      const p = Math.round((DATA[v].done_count / DATA[v].total) * 100);
+      btn.querySelector('.nav-pct').textContent = `${DATA[v].done_count}/${DATA[v].total} — ${p}%`;
+    }
+  });
+  
+  document.querySelectorAll('.city-location-row').forEach(row => {
+    const name = row.querySelector('.loc-link-name').textContent.trim();
+    const match = Object.keys(DATA).find(k => name.includes(k) || k.includes(name));
+    if (match && DATA[match]) {
+      const p = (DATA[match].done_count / DATA[match].total) * 100;
+      row.querySelector('.loc-mini-fill').style.width = p + '%';
+      if (p >= 100) row.querySelector('.loc-mini-fill').classList.add('complete');
+      else row.querySelector('.loc-mini-fill').classList.remove('complete');
+      row.querySelector('.loc-mini-pct').textContent = Math.round(p) + '%';
+    }
+  });
+  
+  if (currentKey && currentKey !== 'home') {
+    const panel = document.getElementById(`view-${currentKey}`);
+    if (panel) {
+      const loc = currentKey === 'all_challenges' ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0) } : DATA[currentKey];
+      const vals = panel.querySelectorAll('.loc-stat .val');
+      if (vals.length >= 3) {
+        vals[0].textContent = loc.done_count;
+        vals[1].textContent = loc.total - loc.done_count;
+        vals[2].textContent = Math.round((loc.done_count / loc.total) * 100) + '%';
+      }
+    }
+  }
+}
+
+function sortTable(key, col) {
+  if (currentSort.col === col) { currentSort.dir *= -1; } else { currentSort.col = col; currentSort.dir = 1; }
+  const rows = key === 'all_challenges' ? getAllChallenges() : DATA[key].rows;
+  const wrap = document.getElementById(`table-wrap-${key.replace(/\s/g,'_')}`);
+  if (wrap) wrap.innerHTML = buildTable(rows, key);
+  updateSticky();
+}
+
+function buildTable(rows, key) {
+  let filtered = rows.filter(r => {
+    if (currentFilter === 'done') return r.done === 1;
+    if (currentFilter === 'undone') return r.done === 0;
+    return true;
+  });
+  
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(r => 
+      r.skater.toLowerCase().includes(q) || r.trick.toLowerCase().includes(q) || r.num.toLowerCase().includes(q) || r.stance.toLowerCase().includes(q) || r.time.toLowerCase().includes(q) || (r.source && r.source.toLowerCase().includes(q))
+    );
+  }
+
+  if (currentSort.col) {
+    filtered.sort((a, b) => {
+      let av = a[currentSort.col]; let bv = b[currentSort.col];
+      if (currentSort.col === 'num') return (parseInt(av, 10) - parseInt(bv, 10)) * currentSort.dir;
+      if (currentSort.col === 'done') return (av - bv) * currentSort.dir;
+      av = (av || '').toString().toLowerCase(); bv = (bv || '').toString().toLowerCase();
+      return av.localeCompare(bv) * currentSort.dir;
+    });
+  }
+
+  const isAll = key === 'all_challenges';
+  const cols = [
+    { label: '#', key: 'num' }, { label: 'Time', key: 'time' }, { label: 'Stance', key: 'stance' }, { label: 'Skater', key: 'skater' }, { label: 'Trick', key: 'trick' },
+    ...(isAll ? [{ label: 'Location', key: 'originalKey' }] : []), { label: 'Film Source', key: 'source' }, { label: 'Done', key: 'done' }
+  ];
+
+  let html = `<table class="challenge-table"><thead><tr>`;
+  cols.forEach(c => {
+    const sorted = currentSort.col === c.key;
+    const arrow = sorted ? (currentSort.dir === 1 ? ' ↑' : ' ↓') : ' ⇅';
+    html += `<th class="${sorted ? 'sorted' : ''}" onclick="sortTable('${key}','${c.key}')">${c.label}<span class="sort-indicator ${sorted ? 'active' : ''}">${arrow}</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  filtered.forEach(r => {
+    const toggleKey = isAll ? r.originalKey : key;
+    html += `<tr class="${r.done === 1 ? 'done-row' : ''}">
+      <td>${r.num}</td>
+      <td>${r.link ? `<a class="time-link" href="javascript:void(0)" onclick="openYTModal('${toggleKey}','${r.num}','time')">${r.time}</a>` : r.time}</td>
+      <td><span class="stance-badge ${r.stance.toLowerCase()}">${r.stance}</span></td>
+      <td>${r.skater}</td><td>${r.trick}</td>
+      ${isAll ? `<td>${r.originalKey}</td>` : ''}
+      <td>${r.sourceLink ? `<a class="source-link" href="javascript:void(0)" onclick="openYTModal('${toggleKey}','${r.num}','source')">${r.source}</a>` : r.source}</td>
+      <td class="done-cell"><input type="checkbox" class="done-checkbox" ${r.done === 1 ? 'checked' : ''} onchange="toggleDone('${toggleKey}','${r.num}',this)"></td>
+    </tr>`;
+  });
+  return html + `</tbody></table>`;
+}
+
+function buildPanel(key) {
+  const isAll = key === 'all_challenges';
+  const loc = isAll ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0), rows: getAllChallenges() } : DATA[key];
+  const pct = Math.round((loc.done_count / loc.total) * 100) || 0;
+
+  return `
+    <div class="spot-header-group">
+      <div class="loc-header">
+        <div class="loc-title">${isAll ? 'All Challenges' : key}</div>
+        <div class="loc-stats">
+          <div class="loc-stat"><span class="val">${loc.done_count}</span><span class="key">Done</span></div>
+          <div class="loc-stat"><span class="val">${loc.total - loc.done_count}</span><span class="key">Remaining</span></div>
+          <div class="loc-stat"><span class="val">${pct}%</span><span class="key">Complete</span></div>
+        </div>
+      </div>
+      <button class="back-home-btn" onclick="showView('home')" style="margin-bottom:0;">← Home</button>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('done',this)">Done</button>
+        <button class="filter-btn" onclick="setFilter('undone',this)">Remaining</button>
+        <input class="search-box" type="text" placeholder="Search #, Stance, Skater..." oninput="setSearch(this.value)">
+      </div>
+    </div>
+    <div id="table-wrap-${key.replace(/\s/g,'_')}">${buildTable(loc.rows, key)}</div>
+    <div class="footer-nav"><button class="back-home-btn" onclick="showView('home')">← Home</button></div>
+  `;
+}
+
+function toggleDone(key, num, cb) {
+  const row = DATA[key].rows.find(r => r.num === num);
+  if (row) {
+    row.done = cb.checked ? 1 : 0;
+    localStorage.setItem(`progress_${key}_${num}`, row.done);
+    DATA[key].done_count = DATA[key].rows.filter(r => r.done === 1).length;
+    
+    // Sync table row UI
+    cb.closest('tr').classList.toggle('done-row', cb.checked);
+    
+    // Sync modal UI dynamically if open
+    const ytModal = document.getElementById('yt-modal');
+    if (ytModal && ytModal.classList.contains('visible') && ytModal.dataset.key === key && ytModal.dataset.num === String(num)) {
+        const content = ytModal.querySelector('.yt-modal-content');
+        content.classList.toggle('checked', cb.checked);
+        const modalCb = document.querySelector('#yt-modal .yt-modal-cb');
+        if (modalCb && modalCb !== cb) modalCb.checked = cb.checked;
+        if (modalCb) modalCb.closest('tr').classList.toggle('done-row', cb.checked);
+        
+        // Ensure main table is synced if toggled from modal
+        const mainCb = document.querySelector(`#view-${currentKey.replace(/\s/g,'_')} .challenge-table input[onchange*="'${num}'"]`);
+        if (mainCb && mainCb !== cb) {
+            mainCb.checked = cb.checked;
+            mainCb.closest('tr').classList.toggle('done-row', cb.checked);
+        }
+    }
+    updateAllProgress();
+  }
+}
+
+function resetAllProgress() {
+  if (confirm("Wipe your local progress entirely? This cannot be undone.")) { localStorage.clear(); location.reload(); }
+}
+
+/* ===============
+   MODAL UI LOGIC & EXPORT
+================= */
+function closeModal() { document.getElementById('save-modal').classList.remove('visible'); }
+
+document.getElementById('save-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+async function handleExport() {
+  await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+  let t = 0;
+  const maps = ORDERED_KEYS.map(k => {
+    if(!DATA[k]) return [];
+    const arr = DATA[k].rows.map(r => r.done === 1);
+    t += arr.filter(Boolean).length;
+    return arr;
+  });
+  const code = SESSIONSIM.encode({ maps, total: t });
+  document.getElementById('modal-title').innerText = "Export Save Code";
+  document.getElementById('modal-desc').innerText = "Copy this code. You can paste it on another device to restore your exact progress losslessly.";
+  const input = document.getElementById('modal-input');
+  input.value = code; input.readOnly = true;
+  const btn = document.getElementById('modal-action-btn');
+  btn.innerText = "Copy to Clipboard";
+  btn.onclick = () => {
+    navigator.clipboard.writeText(code).catch(()=>{});
+    input.select(); document.execCommand("copy");
+    btn.innerText = "Copied!"; setTimeout(() => btn.innerText = "Copy to Clipboard", 2000);
+  };
+  document.getElementById('save-modal').classList.add('visible');
+}
+
+function handleImport() {
+  document.getElementById('modal-title').innerText = "Import Save Code";
+  document.getElementById('modal-desc').innerText = "Paste your code below. WARNING: Overwrites current progress.";
+  const input = document.getElementById('modal-input');
+  input.value = ""; input.readOnly = false;
+  const btn = document.getElementById('modal-action-btn');
+  btn.innerText = "Load Progress";
+  btn.onclick = async () => {
+    const code = input.value.trim();
+    if(code) {
+      try {
+        await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+        const state = SESSIONSIM.decode(code);
+        ORDERED_KEYS.forEach((k, i) => {
+          if(DATA[k] && DATA[k].rows) {
+            DATA[k].rows.forEach((r, idx) => {
+              const v = state.maps[i][idx] ? 1 : 0; r.done = v; localStorage.setItem(`progress_${k}_${r.num}`, v);
+            });
+            DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
+          }
+        });
+        updateAllProgress(); closeModal(); if(currentKey && currentKey !== 'home') showView(currentKey);
+      } catch (e) { alert("Invalid save code format."); }
+    }
+  };
+  document.getElementById('save-modal').classList.add('visible');
+}
+
+/* ===============
+   SCROLL & VIEW LOGIC 
+================= */
+function updateSticky() {
+  const header = document.getElementById('main-header');
+  const activePanel = document.getElementById(`view-${currentKey}`);
+  
+  if (currentKey === 'home' || !activePanel) { header.style.transform = 'translateY(0)'; return; }
+
+  const spotGroup = activePanel.querySelector('.spot-header-group');
+  const ths = activePanel.querySelectorAll('.challenge-table th');
+
+  if (window.scrollY > 50) {
+    header.style.transform = 'translateY(-100%)';
+    if (spotGroup) { spotGroup.style.top = '0px'; ths.forEach(th => th.style.top = spotGroup.offsetHeight + 'px'); }
+  } else {
+    header.style.transform = 'translateY(0)';
+    if (spotGroup) { spotGroup.style.top = header.offsetHeight + 'px'; ths.forEach(th => th.style.top = (header.offsetHeight + spotGroup.offsetHeight) + 'px'); }
+  }
+}
+
+window.addEventListener('scroll', updateSticky);
+window.addEventListener('resize', updateSticky);
+
+async function showView(view) {
+  document.querySelectorAll('.home-panel, .location-panel').forEach(p => p.classList.remove('visible'));
+  currentKey = view; currentFilter = 'all'; searchQuery = ''; currentSort = { col: null, dir: 1 };
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  
+  if (view === 'home') { document.getElementById('view-home').classList.add('visible'); } 
+  else {
+    let panel = document.getElementById(`view-${view}`);
+    if (!panel && view === 'all_challenges') {
+        panel = document.createElement('div'); panel.id = `view-all_challenges`; panel.className = 'location-panel';
+        document.querySelector('main').appendChild(panel);
+    }
+    if (panel) {
+      if (view === 'all_challenges') await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+      else await ensureLocationLoaded(view);
+      panel.innerHTML = buildPanel(view); panel.classList.add('visible');
+    }
+  }
+  window.scrollTo(0, 0); setTimeout(updateSticky, 50); 
+}
+
+function setFilter(f, btn) { currentFilter = f; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows; const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`); if (wrap) wrap.innerHTML = buildTable(rows, currentKey); updateSticky(); }
+function setSearch(val) { searchQuery = val; const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows; const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`); if (wrap) wrap.innerHTML = buildTable(rows, currentKey); updateSticky(); }
+
+// Initialization
+ORDERED_KEYS.forEach(k => ensureLocationLoaded(k));
+document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+</script>
+</body>
+</html>
