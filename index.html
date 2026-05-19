@@ -15,13 +15,14 @@
   body { background: var(--bg); color: var(--text); font-family: 'Space Mono', monospace; min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
   body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; z-index: 9999; }
   
-  header { padding: 48px 40px 32px; border-bottom: 2px solid var(--accent); background: var(--bg); position: sticky; top: 0; z-index: 100; display: flex; align-items: flex-end; gap: 32px; flex-wrap: wrap; }
+  header { padding: 48px 40px 32px; border-bottom: 2px solid var(--accent); background: var(--bg); position: sticky; top: 0; z-index: 1000; display: flex; align-items: flex-end; gap: 32px; flex-wrap: wrap; transition: transform 0.3s ease; }
   .header-title { flex: 1; min-width: 260px; }
   .header-title .label { font-size: clamp(14px, 1.6vw, 19px); letter-spacing: 0.46em; color: var(--accent); text-transform: uppercase; margin-top: 8px; font-weight: 700; line-height: 1; white-space: nowrap; }
   .header-title h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 6vw, 72px); line-height: 0.9; letter-spacing: 0.02em; color: var(--text); }
   .header-title h1 span { color: var(--accent); }
   
-  .total-progress { text-align: right; min-width: 160px; }
+  .total-progress { text-align: right; min-width: 160px; cursor: pointer; transition: opacity 0.2s; }
+  .total-progress:hover { opacity: 0.7; }
   .total-progress .prog-label { font-size: 10px; letter-spacing: 0.25em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
   .total-progress .prog-count { font-family: 'Bebas Neue', sans-serif; font-size: 42px; color: var(--accent); line-height: 1; }
   .total-progress .prog-pct { font-size: 12px; color: var(--muted); }
@@ -40,27 +41,27 @@
   .location-panel.visible { display: block; animation: fadeIn 0.25s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-  .loc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-  .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); }
+  .spot-header-group { position: sticky; z-index: 900; background: var(--bg); transition: top 0.3s ease; padding-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-top: -16px; }
+  .loc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 16px; }
+  .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); text-transform: uppercase; }
   .loc-stats { display: flex; gap: 24px; align-items: center; }
   .loc-stat { text-align: center; }
   .loc-stat .val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--accent); display: block; }
   .loc-stat .key { font-size: 9px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; }
 
-  .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
   .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; cursor: pointer; text-transform: uppercase; }
   .filter-btn.active { border-color: var(--accent); color: var(--accent); }
   .search-box { margin-left: auto; background: var(--bg2); border: 1px solid var(--border); color: var(--text); font-family: 'Space Mono', monospace; font-size: 11px; padding: 6px 12px; width: 200px; outline: none; }
 
-  .challenge-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .challenge-table thead tr { border-bottom: 2px solid var(--accent); }
-  .challenge-table th { font-size: 9px; color: var(--muted); padding: 10px 12px; text-align: left; text-transform: uppercase; cursor: pointer; user-select: none; transition: color 0.15s; }
+  .challenge-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; margin-top: 10px; }
+  .challenge-table th { position: sticky; z-index: 850; background: var(--bg); font-size: 9px; color: var(--muted); padding: 12px; text-align: left; text-transform: uppercase; cursor: pointer; user-select: none; transition: top 0.3s ease, color 0.15s; border-bottom: 2px solid var(--accent); }
   .challenge-table th:hover { color: var(--accent); }
   .challenge-table th.sorted { color: var(--accent); }
-  .challenge-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .challenge-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .challenge-table tbody tr { transition: background 0.1s; }
   .challenge-table tbody tr:hover { background: var(--bg3); }
   .challenge-table tbody tr.done-row td:not(.done-cell) { opacity: 0.35; } 
-  .challenge-table td { padding: 10px 12px; }
 
   .sort-indicator { margin-left: 4px; opacity: 0.5; }
   .sort-indicator.active { opacity: 1; color: var(--accent); }
@@ -86,7 +87,8 @@
   .loc-mini-fill.complete { background: var(--done); }
   .loc-mini-pct { font-size: 10px; color: var(--muted); min-width: 32px; text-align: right; }
   
-  .total-row { background: var(--bg2); border: 2px solid var(--accent); padding: 24px; display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+  .total-row { background: var(--bg2); border: 2px solid var(--accent); padding: 24px; display: flex; justify-content: space-between; align-items: center; margin-top: 24px; cursor: pointer; transition: opacity 0.2s; }
+  .total-row:hover { opacity: 0.8; }
   .total-label { font-family: 'Bebas Neue', sans-serif; font-size: 28px; }
   .total-value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); }
   
@@ -95,8 +97,11 @@
   .action-btn:hover { background: var(--accent); color: #000; }
   .reset-btn { background: transparent; border: 1px solid var(--accent2); color: var(--accent2); font-family: 'Space Mono', monospace; font-size: 9px; padding: 6px 12px; cursor: pointer; text-transform: uppercase; opacity: 0.6; transition: 0.2s; margin-top: 16px; }
   .reset-btn:hover { opacity: 1; background: rgba(255, 60, 0, 0.1); }
-  .back-home-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 16px; cursor: pointer; text-transform: uppercase; margin-bottom: 24px; transition: 0.15s; }
+  
+  .back-home-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 16px; cursor: pointer; text-transform: uppercase; transition: 0.15s; }
   .back-home-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .footer-nav { margin-top: 30px; padding: 20px 0; border-top: 1px solid var(--border); display: flex; justify-content: center; }
+
   .time-link, .source-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
   .time-link:hover, .source-link:hover { border-bottom-color: var(--accent); }
 
@@ -117,12 +122,12 @@
 </head>
 <body>
 
-<header>
+<header id="main-header">
   <div class="header-title">
     <h1>Session<br><span>Historical</span></h1>
     <div class="label">Challenge Tracker</div>
   </div>
-  <div class="total-progress">
+  <div class="total-progress" onclick="showView('all_challenges')" title="View All Challenges">
     <div class="prog-label">Total Progress</div>
     <div class="prog-count">0 / 0</div>
     <div class="prog-pct">0% Complete</div>
@@ -178,9 +183,13 @@
         </div>
       </div>
     </div>
-    <div class="total-row"><span class="total-label">Total Progress</span><span class="total-value">0 / 0 — 0%</span></div>
+    <div class="total-row" onclick="showView('all_challenges')" title="View All Challenges">
+      <span class="total-label">Total Progress</span>
+      <span class="total-value">0 / 0 — 0%</span>
+    </div>
   </div>
 
+  <!-- PANELS INJECTED DYNAMICALLY -->
   <div id="view-Lower Manhattan" class="location-panel"></div>
   <div id="view-Black Hubba" class="location-panel"></div>
   <div id="view-Jerome Banks" class="location-panel"></div>
@@ -190,6 +199,7 @@
   <div id="view-China Banks" class="location-panel"></div>
   <div id="view-Pier 7" class="location-panel"></div>
   <div id="view-Global" class="location-panel"></div>
+  <div id="view-all_challenges" class="location-panel"></div>
 
   <!-- GLOBAL FOOTER ACTIONS -->
   <div class="footer-actions">
@@ -343,6 +353,7 @@ function parseLocationCsv(key, text) {
     const saved = localStorage.getItem(`progress_${key}_${num}`);
     let doneVal = (saved !== null) ? parseInt(saved, 10) : 0; 
     rows.push({
+      originalKey: key, 
       num, time: cells[col.time],
       link: isHttpToken(cells[col.time+1]) ? cells[col.time+1] : null,
       stance: cells[col.stance], skater: cells[col.skater], trick: cells[col.trick],
@@ -363,10 +374,19 @@ async function ensureLocationLoaded(key) {
   await loadPromises[key];
 }
 
+function getAllChallenges() {
+  const allRows = [];
+  ORDERED_KEYS.forEach(key => {
+    if (DATA[key]) allRows.push(...DATA[key].rows);
+  });
+  return allRows;
+}
+
 function updateAllProgress() {
   let gT = 0, gD = 0;
   Object.keys(DATA).forEach(k => { gT += DATA[k].total; gD += DATA[k].done_count; });
   const pct = gT > 0 ? (gD / gT * 100).toFixed(1) : 0;
+  
   document.querySelector('.prog-count').textContent = `${gD} / ${gT}`;
   document.querySelector('.prog-pct').textContent = `${pct}% Complete`;
   document.querySelector('.progress-bar-fill').style.width = pct + '%';
@@ -392,14 +412,19 @@ function updateAllProgress() {
     }
   });
   
-  if (currentKey && DATA[currentKey]) {
+  if (currentKey && currentKey !== 'home') {
     const panel = document.getElementById(`view-${currentKey}`);
     if (panel) {
+      const loc = currentKey === 'all_challenges' ? {
+        total: 335,
+        done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0)
+      } : DATA[currentKey];
+      
       const vals = panel.querySelectorAll('.loc-stat .val');
       if (vals.length >= 3) {
-        vals[0].textContent = DATA[currentKey].done_count;
-        vals[1].textContent = DATA[currentKey].total - DATA[currentKey].done_count;
-        vals[2].textContent = Math.round((DATA[currentKey].done_count / DATA[currentKey].total) * 100) + '%';
+        vals[0].textContent = loc.done_count;
+        vals[1].textContent = loc.total - loc.done_count;
+        vals[2].textContent = Math.round((loc.done_count / loc.total) * 100) + '%';
       }
     }
   }
@@ -412,8 +437,10 @@ function sortTable(key, col) {
     currentSort.col = col;
     currentSort.dir = 1;
   }
+  const rows = key === 'all_challenges' ? getAllChallenges() : DATA[key].rows;
   const wrap = document.getElementById(`table-wrap-${key.replace(/\s/g,'_')}`);
-  if (wrap) wrap.innerHTML = buildTable(DATA[key].rows, key);
+  if (wrap) wrap.innerHTML = buildTable(rows, key);
+  updateSticky();
 }
 
 function buildTable(rows, key) {
@@ -451,12 +478,14 @@ function buildTable(rows, key) {
     });
   }
 
+  const isAll = key === 'all_challenges';
   const cols = [
     { label: '#', key: 'num' },
     { label: 'Time', key: 'time' },
     { label: 'Stance', key: 'stance' },
     { label: 'Skater', key: 'skater' },
     { label: 'Trick', key: 'trick' },
+    ...(isAll ? [{ label: 'Location', key: 'originalKey' }] : []),
     { label: 'Film Source', key: 'source' },
     { label: 'Done', key: 'done' }
   ];
@@ -470,16 +499,55 @@ function buildTable(rows, key) {
   html += `</tr></thead><tbody>`;
 
   filtered.forEach(r => {
+    const toggleKey = isAll ? r.originalKey : key;
     html += `<tr class="${r.done === 1 ? 'done-row' : ''}">
       <td>${r.num}</td>
       <td>${r.link ? `<a class="time-link" href="${r.link}" target="_blank">${r.time}</a>` : r.time}</td>
       <td><span class="stance-badge ${r.stance.toLowerCase()}">${r.stance}</span></td>
       <td>${r.skater}</td><td>${r.trick}</td>
+      ${isAll ? `<td>${r.originalKey}</td>` : ''}
       <td>${r.sourceLink ? `<a class="source-link" href="${r.sourceLink}" target="_blank">${r.source}</a>` : r.source}</td>
-      <td class="done-cell"><input type="checkbox" class="done-checkbox" ${r.done === 1 ? 'checked' : ''} onchange="toggleDone('${key}','${r.num}',this)"></td>
+      <td class="done-cell"><input type="checkbox" class="done-checkbox" ${r.done === 1 ? 'checked' : ''} onchange="toggleDone('${toggleKey}','${r.num}',this)"></td>
     </tr>`;
   });
   return html + `</tbody></table>`;
+}
+
+function buildPanel(key) {
+  const isAll = key === 'all_challenges';
+  const loc = isAll ? {
+    total: 335,
+    done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0),
+    rows: getAllChallenges()
+  } : DATA[key];
+
+  const pct = Math.round((loc.done_count / loc.total) * 100) || 0;
+
+  return `
+    <div class="spot-header-group">
+      <div class="loc-header">
+        <div class="loc-title">${isAll ? 'All Challenges' : key}</div>
+        <div class="loc-stats">
+          <div class="loc-stat"><span class="val">${loc.done_count}</span><span class="key">Done</span></div>
+          <div class="loc-stat"><span class="val">${loc.total - loc.done_count}</span><span class="key">Remaining</span></div>
+          <div class="loc-stat"><span class="val">${pct}%</span><span class="key">Complete</span></div>
+        </div>
+      </div>
+      <button class="back-home-btn" onclick="showView('home')" style="margin-bottom:0;">← Home</button>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('done',this)">Done</button>
+        <button class="filter-btn" onclick="setFilter('undone',this)">Remaining</button>
+        <input class="search-box" type="text" placeholder="Search #, Stance, Skater..." oninput="setSearch(this.value)">
+      </div>
+    </div>
+    <div id="table-wrap-${key.replace(/\s/g,'_')}">
+      ${buildTable(loc.rows, key)}
+    </div>
+    <div class="footer-nav">
+      <button class="back-home-btn" onclick="showView('home')">← Home</button>
+    </div>
+  `;
 }
 
 function toggleDone(key, num, cb) {
@@ -501,7 +569,7 @@ function resetAllProgress() {
 }
 
 /* ===============
-   MODAL UI LOGIC 
+   MODAL UI LOGIC & EXPORT
 ================= */
 function closeModal() { document.getElementById('save-modal').classList.remove('visible'); }
 
@@ -522,7 +590,7 @@ async function handleExport() {
   const code = SESSIONSIM.encode({ maps, total: t });
   
   document.getElementById('modal-title').innerText = "Export Save Code";
-  document.getElementById('modal-desc').innerText = "Copy this code. You can paste it on another device to restore your exact progress losslessly.";
+  document.getElementById('modal-desc').innerText = "Copy this strict 10-character code to restore your exact progress on another device.";
   const input = document.getElementById('modal-input');
   input.value = code; input.readOnly = true;
   
@@ -539,7 +607,7 @@ async function handleExport() {
 
 function handleImport() {
   document.getElementById('modal-title').innerText = "Import Save Code";
-  document.getElementById('modal-desc').innerText = "Paste your code below. WARNING: Overwrites current progress.";
+  document.getElementById('modal-desc').innerText = "Paste your 10-character code below. WARNING: Overwrites current progress.";
   const input = document.getElementById('modal-input');
   input.value = ""; input.readOnly = false;
   
@@ -548,64 +616,107 @@ function handleImport() {
   btn.onclick = async () => {
     const code = input.value.trim();
     if(code) {
-      try {
-        await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
-        const state = SESSIONSIM.decode(code);
-        
-        ORDERED_KEYS.forEach((k, i) => {
-          if(DATA[k] && DATA[k].rows) {
-            DATA[k].rows.forEach((r, idx) => {
-              const v = state.maps[i][idx] ? 1 : 0;
-              r.done = v;
-              localStorage.setItem(`progress_${k}_${r.num}`, v);
-            });
-            DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
-          }
-        });
-        updateAllProgress();
-        closeModal();
-        if(currentKey && currentKey !== 'home') showView(currentKey);
-      } catch (e) { alert("Invalid save code format."); }
+      await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+      const state = SESSIONSIM.decode(code);
+      if(!state) { alert("Invalid code format."); return; }
+      
+      ORDERED_KEYS.forEach((k, i) => {
+        if(DATA[k] && DATA[k].rows) {
+          DATA[k].rows.forEach((r, idx) => {
+            const v = state.maps[i][idx] ? 1 : 0;
+            r.done = v;
+            localStorage.setItem(`progress_${k}_${r.num}`, v);
+          });
+          DATA[k].done_count = DATA[k].rows.filter(r => r.done === 1).length;
+        }
+      });
+      updateAllProgress();
+      closeModal();
+      if(currentKey && currentKey !== 'home') showView(currentKey);
     }
   };
   document.getElementById('save-modal').classList.add('visible');
 }
 
+/* ===============
+   SCROLL & VIEW LOGIC 
+================= */
+function updateSticky() {
+  const header = document.getElementById('main-header');
+  const spotGroup = document.querySelector('.spot-header-group');
+  const ths = document.querySelectorAll('.challenge-table th');
+  
+  if (currentKey === 'home') {
+    header.style.transform = 'translateY(0)';
+    return;
+  }
+
+  if (window.scrollY > 50) {
+    header.style.transform = 'translateY(-100%)';
+    if (spotGroup) {
+       spotGroup.style.top = '0px';
+       ths.forEach(th => th.style.top = spotGroup.offsetHeight + 'px');
+    }
+  } else {
+    header.style.transform = 'translateY(0)';
+    if (spotGroup) {
+       spotGroup.style.top = header.offsetHeight + 'px';
+       ths.forEach(th => th.style.top = (header.offsetHeight + spotGroup.offsetHeight) + 'px');
+    }
+  }
+}
+
+window.addEventListener('scroll', updateSticky);
+window.addEventListener('resize', updateSticky);
+
 async function showView(view) {
   document.querySelectorAll('.home-panel, .location-panel').forEach(p => p.classList.remove('visible'));
   currentKey = view; currentFilter = 'all'; searchQuery = ''; currentSort = { col: null, dir: 1 };
+  
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   
   if (view === 'home') { 
     document.getElementById('view-home').classList.add('visible'); 
   } else {
-    const panel = document.getElementById(`view-${view}`);
+    let panel = document.getElementById(`view-${view}`);
+    if (!panel && view === 'all_challenges') {
+        panel = document.createElement('div');
+        panel.id = `view-all_challenges`;
+        panel.className = 'location-panel';
+        document.querySelector('main').appendChild(panel);
+    }
+
     if (panel) {
-      await ensureLocationLoaded(view);
-      const loc = DATA[view];
-      const pct = Math.round((loc.done_count / loc.total) * 100);
-      panel.innerHTML = `
-        <button class="back-home-btn" onclick="showView('home')">← Home</button>
-        <div class="loc-header"><div class="loc-title">${view}</div><div class="loc-stats"><div class="loc-stat"><span class="val">${loc.done_count}</span><span class="key">Done</span></div><div class="loc-stat"><span class="val">${loc.total - loc.done_count}</span><span class="key">Remaining</span></div><div class="loc-stat"><span class="val">${pct}%</span><span class="key">Complete</span></div></div></div>
-        <div class="filter-bar"><button class="filter-btn active" onclick="setFilter('all',this)">All</button><button class="filter-btn" onclick="setFilter('done',this)">Done</button><button class="filter-btn" onclick="setFilter('undone',this)">Remaining</button><input class="search-box" type="text" placeholder="Search..." oninput="setSearch(this.value)"></div>
-        <div id="table-wrap-${view.replace(/\s/g,'_')}">${buildTable(loc.rows, view)}</div>`;
+      if (view === 'all_challenges') {
+        await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
+      } else {
+        await ensureLocationLoaded(view);
+      }
+      
+      panel.innerHTML = buildPanel(view);
       panel.classList.add('visible');
     }
   }
+  window.scrollTo(0, 0);
+  setTimeout(updateSticky, 50); 
 }
 
 function setFilter(f, btn) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows;
   const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`);
-  if (wrap) wrap.innerHTML = buildTable(DATA[currentKey].rows, currentKey);
+  if (wrap) wrap.innerHTML = buildTable(rows, currentKey);
+  updateSticky();
 }
 
 function setSearch(val) {
   searchQuery = val;
+  const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows;
   const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`);
-  if (wrap) wrap.innerHTML = buildTable(DATA[currentKey].rows, currentKey);
+  if (wrap) wrap.innerHTML = buildTable(rows, currentKey);
+  updateSticky();
 }
 
 // Initialization
