@@ -43,7 +43,7 @@
 
   .spot-header-group { position: sticky; z-index: 900; background: var(--bg); transition: top 0.3s ease; padding-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-top: -16px; }
   
-  /* Flex wrap adjustments for responsiveness */
+  /* Flex wrap adjustments for responsiveness (Vertical gap issue fixed) */
   .loc-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 16px; }
   .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); text-transform: uppercase; word-break: break-word; }
   .loc-stats { display: flex; gap: clamp(16px, 3vw, 24px); align-items: center; flex-wrap: wrap; }
@@ -123,6 +123,7 @@
 
   /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 768px) {
+    body { zoom: 0.75; }
     header, nav, main { padding-left: 16px; padding-right: 16px; }
     .loc-header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .loc-stats { justify-content: flex-start; width: 100%; }
@@ -587,7 +588,6 @@ function resetAllProgress() {
 function closeModal() { document.getElementById('save-modal').classList.remove('visible'); }
 
 document.getElementById('save-modal').addEventListener('click', function(e) {
-  // Only close if they clicked the overlay background itself, not the window inside it
   if (e.target === this) closeModal();
 });
 
