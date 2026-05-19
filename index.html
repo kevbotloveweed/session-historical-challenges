@@ -45,7 +45,7 @@
   
   /* Flex wrap adjustments for responsiveness */
   .loc-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 16px; }
-  .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); text-transform: uppercase; word-break: break-word; flex: 1 1 250px; }
+  .loc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 7vw, 80px); line-height: 0.9; color: var(--text); text-transform: uppercase; word-break: break-word; }
   .loc-stats { display: flex; gap: clamp(16px, 3vw, 24px); align-items: center; flex-wrap: wrap; }
   .loc-stat { text-align: center; }
   .loc-stat .val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--accent); display: block; }
@@ -587,6 +587,7 @@ function resetAllProgress() {
 function closeModal() { document.getElementById('save-modal').classList.remove('visible'); }
 
 document.getElementById('save-modal').addEventListener('click', function(e) {
+  // Only close if they clicked the overlay background itself, not the window inside it
   if (e.target === this) closeModal();
 });
 
@@ -603,7 +604,7 @@ async function handleExport() {
   const code = SESSIONSIM.encode({ maps, total: t });
   
   document.getElementById('modal-title').innerText = "Export Save Code";
-  document.getElementById('modal-desc').innerText = "Copy this strict 10-character code to restore your exact progress on another device.";
+  document.getElementById('modal-desc').innerText = "Copy this code. You can paste it on another device to restore your exact progress losslessly.";
   const input = document.getElementById('modal-input');
   input.value = code; input.readOnly = true;
   
@@ -620,7 +621,7 @@ async function handleExport() {
 
 function handleImport() {
   document.getElementById('modal-title').innerText = "Import Save Code";
-  document.getElementById('modal-desc').innerText = "Paste your 10-character code below. WARNING: Overwrites current progress.";
+  document.getElementById('modal-desc').innerText = "Paste your code below. WARNING: Overwrites current progress.";
   const input = document.getElementById('modal-input');
   input.value = ""; input.readOnly = false;
   
@@ -657,13 +658,15 @@ function handleImport() {
 ================= */
 function updateSticky() {
   const header = document.getElementById('main-header');
-  const spotGroup = document.querySelector('.spot-header-group');
-  const ths = document.querySelectorAll('.challenge-table th');
+  const activePanel = document.getElementById(`view-${currentKey}`);
   
-  if (currentKey === 'home') {
+  if (currentKey === 'home' || !activePanel) {
     header.style.transform = 'translateY(0)';
     return;
   }
+
+  const spotGroup = activePanel.querySelector('.spot-header-group');
+  const ths = activePanel.querySelectorAll('.challenge-table th');
 
   if (window.scrollY > 50) {
     header.style.transform = 'translateY(-100%)';
