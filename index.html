@@ -132,6 +132,7 @@
 
   /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 768px) {
+    body { zoom: 0.75; }
     header, nav, main { padding-left: 16px; padding-right: 16px; }
     .loc-header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .loc-stats { justify-content: flex-start; width: 100%; }
@@ -261,7 +262,6 @@
   </div>
 </div>
 
-<script src="https://youtube.com/iframe_api"></script>
 <script>
 let DATA = {};
 let currentKey = null;
@@ -282,6 +282,11 @@ let ytReady = false;
 let timestampTrackerInterval;
 let dbStartTime = 0;
 let dbEndTime = 0;
+
+// Programmatically load API script to avoid duplicates
+const ytScriptTag = document.createElement('script');
+ytScriptTag.src = "https://www.youtube.com/iframe_api";
+document.head.appendChild(ytScriptTag);
 
 window.onYouTubeIframeAPIReady = function() { ytReady = true; };
 
@@ -322,7 +327,7 @@ function initYTPlayer(videoId, start) {
         'disablekb': 1, 
         'modestbranding': 1, 
         'rel': 0, 
-        'mute': 0, 
+        'mute': 1, // Start muted to satisfy browser autoplay constraints
         'playsinline': 1, 
         'start': Math.floor(start) 
       },
@@ -339,6 +344,14 @@ function initYTPlayer(videoId, start) {
 function onPlayerReady(event) {
   event.target.seekTo(dbStartTime);
   event.target.playVideo();
+  
+  // Stealth Unmute Trick: Browser approves start because video was technically muted on launch.
+  // 50ms later, it sets the video volume back to 100%. 
+  setTimeout(() => { 
+      event.target.unMute(); 
+      event.target.setVolume(100); 
+  }, 50);
+
   startHighFrequencyTracker();
 }
 
@@ -511,19 +524,6 @@ function parseCsvLine(line) {
   out.push(cur); return out.map(s => s.trim());
 }
 
-function secondsFromYoutubeUrl(url) {
-    if (!url || typeof url !== 'string') return null;
-    const tMatch = url.match(/[?&]t=([a-zA-Z0-9]+)/);
-    if (!tMatch) return null;
-    const t = tMatch[1];
-    if (/^\d+$/.test(t)) return parseInt(t, 10);
-    let sec = 0;
-    const h = t.match(/(\d+)h/i); if (h) sec += parseInt(h[1], 10) * 3600;
-    const m = t.match(/(\d+)m/i); if (m) sec += parseInt(m[1], 10) * 60;
-    const s = t.match(/(\d+)s/i); if (s) sec += parseInt(s[1], 10);
-    return sec > 0 ? sec : null;
-}
-
 function parseLocationCsv(key, text) {
   const lines = text.split(/\r?\n/);
   let headerIdx = -1, col = null;
@@ -564,9 +564,6 @@ function parseLocationCsv(key, text) {
     let eSec = col.end >= 0 ? parseNum(cells[col.end]) : null;
     let fsSec = col.fStart >= 0 ? parseNum(cells[col.fStart]) : null;
     let feSec = col.fEnd >= 0 ? parseNum(cells[col.fEnd]) : null;
-    
-    if (sSec === null && link) sSec = secondsFromYoutubeUrl(link);
-    if (fsSec === null && fLink) fsSec = secondsFromYoutubeUrl(fLink);
 
     rows.push({
       originalKey: key, 
@@ -631,16 +628,10 @@ function updateAllProgress() {
     }
   });
   
-  if (currentKey && currentKey !== 'home' && DATA[currentKey]) {
+  if (currentKey && currentKey !== 'home') {
     const panel = document.getElementById(`view-${currentKey}`);
     if (panel) {
-      let loc = DATA[currentKey];
-      if (currentKey === 'all_challenges') {
-         let t = 0, d = 0;
-         Object.values(DATA).forEach(obj => { if(obj) { t+=obj.total; d+=obj.done_count; } });
-         loc = { total: t, done_count: d };
-      }
-      
+      const loc = currentKey === 'all_challenges' ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0) } : DATA[currentKey];
       const vals = panel.querySelectorAll('.loc-stat .val');
       if (vals.length >= 3) {
         vals[0].textContent = loc.done_count;
@@ -660,8 +651,6 @@ function sortTable(key, col) {
 }
 
 function buildTable(rows, key) {
-  if(!rows || rows.length === 0) return `<div class="empty-state">No challenges found or data failed to load.</div>`;
-
   let filtered = rows.filter(r => {
     if (currentFilter === 'done') return r.done === 1;
     if (currentFilter === 'undone') return r.done === 0;
@@ -716,16 +705,8 @@ function buildTable(rows, key) {
 
 function buildPanel(key) {
   const isAll = key === 'all_challenges';
-  let loc;
-  if (isAll) {
-     let t = 0, d = 0;
-     Object.values(DATA).forEach(obj => { if(obj) { t += obj.total; d += obj.done_count; }});
-     loc = { total: t, done_count: d, rows: getAllChallenges() };
-  } else {
-     loc = DATA[key] || { total: 0, done_count: 0, rows: [] };
-  }
-
-  const pct = loc.total > 0 ? Math.round((loc.done_count / loc.total) * 100) : 0;
+  const loc = isAll ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0), rows: getAllChallenges() } : DATA[key];
+  const pct = Math.round((loc.done_count / loc.total) * 100) || 0;
 
   return `
     <div class="spot-header-group">
@@ -751,7 +732,6 @@ function buildPanel(key) {
 }
 
 function toggleDone(key, num, cb) {
-  if (!DATA[key] || !DATA[key].rows) return;
   const row = DATA[key].rows.find(r => r.num === num);
   if (row) {
     row.done = cb.checked ? 1 : 0;
@@ -771,7 +751,6 @@ function toggleDone(key, num, cb) {
         const content = ytModal.querySelector('.yt-modal-content');
         if (content) content.classList.toggle('checked', row.done === 1);
     }
-
     updateAllProgress();
   }
 }
