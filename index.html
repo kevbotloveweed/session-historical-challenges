@@ -132,7 +132,6 @@
 
   /* MOBILE RESPONSIVE FIXES */
   @media (max-width: 768px) {
-    body { zoom: 0.75; }
     header, nav, main { padding-left: 16px; padding-right: 16px; }
     .loc-header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .loc-stats { justify-content: flex-start; width: 100%; }
@@ -323,7 +322,7 @@ function initYTPlayer(videoId, start) {
         'disablekb': 1, 
         'modestbranding': 1, 
         'rel': 0, 
-        'mute': 0,  // Unmuted by default as requested
+        'mute': 0, 
         'playsinline': 1, 
         'start': Math.floor(start) 
       },
@@ -347,7 +346,6 @@ function startHighFrequencyTracker() {
   if (timestampTrackerInterval) clearInterval(timestampTrackerInterval);
   if (dbEndTime <= 0) return; // Ignore if there is no set end time
 
-  // 10ms high-frequency tracker as requested
   timestampTrackerInterval = setInterval(() => {
     try {
       if (player && typeof player.getCurrentTime === 'function') {
@@ -501,7 +499,7 @@ const SESSIONSIM = (() => {
 })();
 
 /* ===============
-   CSV LOGIC 
+   CORE LOGIC & CSV PARSING
 ================= */
 function parseCsvLine(line) {
   const out = []; let cur = ''; let inQ = false;
@@ -511,6 +509,19 @@ function parseCsvLine(line) {
     else { if (c === '"') inQ = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; }
   }
   out.push(cur); return out.map(s => s.trim());
+}
+
+function secondsFromYoutubeUrl(url) {
+    if (!url || typeof url !== 'string') return null;
+    const tMatch = url.match(/[?&]t=([a-zA-Z0-9]+)/);
+    if (!tMatch) return null;
+    const t = tMatch[1];
+    if (/^\d+$/.test(t)) return parseInt(t, 10);
+    let sec = 0;
+    const h = t.match(/(\d+)h/i); if (h) sec += parseInt(h[1], 10) * 3600;
+    const m = t.match(/(\d+)m/i); if (m) sec += parseInt(m[1], 10) * 60;
+    const s = t.match(/(\d+)s/i); if (s) sec += parseInt(s[1], 10);
+    return sec > 0 ? sec : null;
 }
 
 function parseLocationCsv(key, text) {
@@ -531,6 +542,13 @@ function parseLocationCsv(key, text) {
   }
   if (!col) return null;
   const rows = [];
+  
+  const parseNum = (val) => {
+      if (!val || !val.trim()) return null;
+      const n = parseFloat(val.trim());
+      return isNaN(n) ? null : n;
+  };
+
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const line = lines[i]; if (!line.trim()) continue;
     const cells = parseCsvLine(line);
@@ -542,10 +560,13 @@ function parseLocationCsv(key, text) {
     let link = col.url >= 0 && cells[col.url] ? cells[col.url] : null;
     let fLink = col.fUrl >= 0 && cells[col.fUrl] ? cells[col.fUrl] : null;
     
-    let sSec = col.start >= 0 && cells[col.start] ? parseFloat(cells[col.start]) : null;
-    let eSec = col.end >= 0 && cells[col.end] ? parseFloat(cells[col.end]) : null;
-    let fsSec = col.fStart >= 0 && cells[col.fStart] ? parseFloat(cells[col.fStart]) : null;
-    let feSec = col.fEnd >= 0 && cells[col.fEnd] ? parseFloat(cells[col.fEnd]) : null;
+    let sSec = col.start >= 0 ? parseNum(cells[col.start]) : null;
+    let eSec = col.end >= 0 ? parseNum(cells[col.end]) : null;
+    let fsSec = col.fStart >= 0 ? parseNum(cells[col.fStart]) : null;
+    let feSec = col.fEnd >= 0 ? parseNum(cells[col.fEnd]) : null;
+    
+    if (sSec === null && link) sSec = secondsFromYoutubeUrl(link);
+    if (fsSec === null && fLink) fsSec = secondsFromYoutubeUrl(fLink);
 
     rows.push({
       originalKey: key, 
@@ -737,7 +758,7 @@ function toggleDone(key, num, cb) {
     localStorage.setItem(`progress_${key}_${num}`, row.done);
     DATA[key].done_count = DATA[key].rows.filter(r => r.done === 1).length;
     
-    // Sync table row UI
+    // Sync table row UI safely via data attributes
     document.querySelectorAll(`.done-checkbox[data-key="${key}"][data-num="${num}"]`).forEach(checkbox => {
         checkbox.checked = row.done === 1;
         const tr = checkbox.closest('tr');
@@ -784,7 +805,7 @@ async function handleExport() {
   const code = SESSIONSIM.encode({ maps, total: t });
   
   document.getElementById('modal-title').innerText = "Export Save Code";
-  document.getElementById('modal-desc').innerText = "Copy this code. You can paste it on another device to restore your exact progress losslessly.";
+  document.getElementById('modal-desc').innerText = "Copy this strict 10-character code to restore your exact progress on another device.";
   const input = document.getElementById('modal-input');
   input.value = code; input.readOnly = true;
   
@@ -801,7 +822,7 @@ async function handleExport() {
 
 function handleImport() {
   document.getElementById('modal-title').innerText = "Import Save Code";
-  document.getElementById('modal-desc').innerText = "Paste your code below. WARNING: Overwrites current progress.";
+  document.getElementById('modal-desc').innerText = "Paste your 10-character code below. WARNING: Overwrites current progress.";
   const input = document.getElementById('modal-input');
   input.value = ""; input.readOnly = false;
   
