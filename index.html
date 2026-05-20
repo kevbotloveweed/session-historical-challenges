@@ -252,16 +252,17 @@
   <div class="yt-modal-content">
     <button class="yt-close-btn" onclick="closeYTModal()">X</button>
     
-    <!-- Shielded Player Container (Blocks UI Interactions) -->
+    <!-- Shielded Player Container -->
     <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden;">
       <div id="db-yt-player"></div>
-      <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 10; cursor: default; pointer-events: auto;"></div>
+      <div id="yt-shield" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 10; cursor: default; pointer-events: auto;"></div>
     </div>
     
     <div id="yt-row-info" class="yt-row-info"></div>
   </div>
 </div>
 
+<script src="https://www.youtube.com/iframe_api"></script>
 <script>
 let DATA = {};
 let currentKey = null;
@@ -283,31 +284,19 @@ let timestampTrackerInterval;
 let dbStartTime = 0;
 let dbEndTime = 0;
 
-// Programmatically load API script to avoid duplicates
-const ytScriptTag = document.createElement('script');
-ytScriptTag.src = "https://www.youtube.com/iframe_api";
-document.head.appendChild(ytScriptTag);
-
 window.onYouTubeIframeAPIReady = function() { ytReady = true; };
 
 function extractYTId(urlStr) {
   if (!urlStr) return null;
-  try {
-    const url = new URL(urlStr);
-    if (url.hostname.includes('youtube.com')) return url.searchParams.get('v');
-    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
-  } catch(e) {}
-  const vIndex = urlStr.indexOf('v=');
-  if (vIndex !== -1) {
-    const ampIndex = urlStr.indexOf('&', vIndex);
-    return urlStr.substring(vIndex + 2, ampIndex !== -1 ? ampIndex : urlStr.length);
-  }
-  const beIndex = urlStr.indexOf('youtu.be/');
-  if (beIndex !== -1) {
-    const queryIndex = urlStr.indexOf('?', beIndex);
-    return urlStr.substring(beIndex + 9, queryIndex !== -1 ? queryIndex : urlStr.length);
-  }
-  return null;
+  const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/;
+  const match = urlStr.match(regExp);
+  return match ? match[1] : null;
+}
+
+function onPlayerError(event) {
+    // If Video Age Restriction/Embed Blocking fires, safely dissolve the UI Shield
+    const shield = document.getElementById('yt-shield');
+    if (shield) shield.style.pointerEvents = 'none';
 }
 
 function initYTPlayer(videoId, start) {
@@ -327,13 +316,14 @@ function initYTPlayer(videoId, start) {
         'disablekb': 1, 
         'modestbranding': 1, 
         'rel': 0, 
-        'mute': 1, // Start muted to satisfy browser autoplay constraints
+        'mute': 1, // Browser Autoplay Block Failsafe 
         'playsinline': 1, 
         'start': Math.floor(start) 
       },
       events: { 
         'onReady': onPlayerReady,
-        'onStateChange': onPlayerStateChange 
+        'onStateChange': onPlayerStateChange,
+        'onError': onPlayerError
       }
     });
   } else {
@@ -345,8 +335,6 @@ function onPlayerReady(event) {
   event.target.seekTo(dbStartTime);
   event.target.playVideo();
   
-  // Stealth Unmute Trick: Browser approves start because video was technically muted on launch.
-  // 50ms later, it sets the video volume back to 100%. 
   setTimeout(() => { 
       event.target.unMute(); 
       event.target.setVolume(100); 
@@ -357,7 +345,7 @@ function onPlayerReady(event) {
 
 function startHighFrequencyTracker() {
   if (timestampTrackerInterval) clearInterval(timestampTrackerInterval);
-  if (dbEndTime <= 0) return; // Ignore if there is no set end time
+  if (dbEndTime <= 0) return;
 
   timestampTrackerInterval = setInterval(() => {
     try {
@@ -387,6 +375,10 @@ function onPlayerStateChange(event) {
 function openYTModal(key, num, type) {
   const row = DATA[key].rows.find(r => r.num === String(num));
   if(!row) return;
+
+  // Reactivate shield locally upon launching consecutive instances safely preventing cross interactions 
+  const shield = document.getElementById('yt-shield');
+  if (shield) shield.style.pointerEvents = 'auto';
 
   const url = type === 'time' ? row.link : row.sourceLink;
   dbStartTime = type === 'time' ? row.startSec : row.fStartSec;
@@ -524,6 +516,22 @@ function parseCsvLine(line) {
   out.push(cur); return out.map(s => s.trim());
 }
 
+function secondsFromYoutubeUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const tMatch = url.match(/[?&]t=([a-zA-Z0-9]+)/); 
+  if (!tMatch) return null;
+  const t = tMatch[1];
+  if (/^\d+$/.test(t)) return parseInt(t, 10);
+  let sec = 0;
+  const h = t.match(/(\d+)h/i); if (h) sec += parseInt(h[1], 10) * 3600;
+  const m = t.match(/(\d+)m/i); if (m) sec += parseInt(m[1], 10) * 60;
+  const s = t.match(/(\d+)s/i); if (s) sec += parseInt(s[1], 10);
+  return sec > 0 ? sec : null;
+}
+
+function escapeHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function isHttpToken(s) { return /^https?:\/\//i.test(String(s || '').trim()); }
+
 function parseLocationCsv(key, text) {
   const lines = text.split(/\r?\n/);
   let headerIdx = -1, col = null;
@@ -542,12 +550,6 @@ function parseLocationCsv(key, text) {
   }
   if (!col) return null;
   const rows = [];
-  
-  const parseNum = (val) => {
-      if (!val || !val.trim()) return null;
-      const n = parseFloat(val.trim());
-      return isNaN(n) ? null : n;
-  };
 
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const line = lines[i]; if (!line.trim()) continue;
@@ -557,13 +559,20 @@ function parseLocationCsv(key, text) {
     const saved = localStorage.getItem(`progress_${key}_${num}`);
     let doneVal = (saved !== null) ? parseInt(saved, 10) : 0; 
 
-    let link = col.url >= 0 && cells[col.url] ? cells[col.url] : null;
-    let fLink = col.fUrl >= 0 && cells[col.fUrl] ? cells[col.fUrl] : null;
+    // Gracefully handle undefined cell strings globally mapping URL/Start states unconditionally preventing JS failures 
+    let link = (col.url >= 0 && cells[col.url] && isHttpToken(cells[col.url])) ? cells[col.url] : null;
+    if (!link && col.time >= 0 && isHttpToken(cells[col.time+1])) link = cells[col.time+1];
+
+    let fLink = (col.fUrl >= 0 && cells[col.fUrl] && isHttpToken(cells[col.fUrl])) ? cells[col.fUrl] : null;
+    if (!fLink && col.source >= 0 && isHttpToken(cells[col.source+1])) fLink = cells[col.source+1];
     
-    let sSec = col.start >= 0 ? parseNum(cells[col.start]) : null;
-    let eSec = col.end >= 0 ? parseNum(cells[col.end]) : null;
-    let fsSec = col.fStart >= 0 ? parseNum(cells[col.fStart]) : null;
-    let feSec = col.fEnd >= 0 ? parseNum(cells[col.fEnd]) : null;
+    let sSec = (col.start >= 0 && cells[col.start] && cells[col.start].trim() !== '') ? parseFloat(cells[col.start].trim()) : null;
+    let eSec = (col.end >= 0 && cells[col.end] && cells[col.end].trim() !== '') ? parseFloat(cells[col.end].trim()) : null;
+    let fsSec = (col.fStart >= 0 && cells[col.fStart] && cells[col.fStart].trim() !== '') ? parseFloat(cells[col.fStart].trim()) : null;
+    let feSec = (col.fEnd >= 0 && cells[col.fEnd] && cells[col.fEnd].trim() !== '') ? parseFloat(cells[col.fEnd].trim()) : null;
+
+    if (sSec === null && link) sSec = secondsFromYoutubeUrl(link);
+    if (fsSec === null && fLink) fsSec = secondsFromYoutubeUrl(fLink);
 
     rows.push({
       originalKey: key, 
@@ -628,10 +637,16 @@ function updateAllProgress() {
     }
   });
   
-  if (currentKey && currentKey !== 'home') {
+  if (currentKey && currentKey !== 'home' && DATA[currentKey]) {
     const panel = document.getElementById(`view-${currentKey}`);
     if (panel) {
-      const loc = currentKey === 'all_challenges' ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0) } : DATA[currentKey];
+      let loc = DATA[currentKey];
+      if (currentKey === 'all_challenges') {
+         let t = 0, d = 0;
+         Object.values(DATA).forEach(obj => { if(obj) { t+=obj.total; d+=obj.done_count; } });
+         loc = { total: t, done_count: d };
+      }
+      
       const vals = panel.querySelectorAll('.loc-stat .val');
       if (vals.length >= 3) {
         vals[0].textContent = loc.done_count;
@@ -651,6 +666,8 @@ function sortTable(key, col) {
 }
 
 function buildTable(rows, key) {
+  if(!rows || rows.length === 0) return `<div class="empty-state">No challenges found or data failed to load.</div>`;
+
   let filtered = rows.filter(r => {
     if (currentFilter === 'done') return r.done === 1;
     if (currentFilter === 'undone') return r.done === 0;
@@ -705,8 +722,16 @@ function buildTable(rows, key) {
 
 function buildPanel(key) {
   const isAll = key === 'all_challenges';
-  const loc = isAll ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0), rows: getAllChallenges() } : DATA[key];
-  const pct = Math.round((loc.done_count / loc.total) * 100) || 0;
+  let loc;
+  if (isAll) {
+     let t = 0, d = 0;
+     Object.values(DATA).forEach(obj => { if(obj) { t += obj.total; d += obj.done_count; }});
+     loc = { total: t, done_count: d, rows: getAllChallenges() };
+  } else {
+     loc = DATA[key] || { total: 0, done_count: 0, rows: [] };
+  }
+
+  const pct = loc.total > 0 ? Math.round((loc.done_count / loc.total) * 100) : 0;
 
   return `
     <div class="spot-header-group">
@@ -732,6 +757,7 @@ function buildPanel(key) {
 }
 
 function toggleDone(key, num, cb) {
+  if (!DATA[key] || !DATA[key].rows) return;
   const row = DATA[key].rows.find(r => r.num === num);
   if (row) {
     row.done = cb.checked ? 1 : 0;
@@ -751,6 +777,7 @@ function toggleDone(key, num, cb) {
         const content = ytModal.querySelector('.yt-modal-content');
         if (content) content.classList.toggle('checked', row.done === 1);
     }
+
     updateAllProgress();
   }
 }
