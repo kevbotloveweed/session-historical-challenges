@@ -262,7 +262,6 @@
   </div>
 </div>
 
-<script src="https://youtube.com/iframe_api"></script>
 <script>
 let DATA = {};
 let currentKey = null;
@@ -284,26 +283,19 @@ let timestampTrackerInterval;
 let dbStartTime = 0;
 let dbEndTime = 0;
 
+// Dynamically inject YouTube API Script
+const ytScriptTag = document.createElement('script');
+ytScriptTag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+if(firstScriptTag) firstScriptTag.parentNode.insertBefore(ytScriptTag, firstScriptTag);
+else document.head.appendChild(ytScriptTag);
+
 window.onYouTubeIframeAPIReady = function() { ytReady = true; };
 
 function extractYTId(urlStr) {
   if (!urlStr) return null;
-  try {
-    const url = new URL(urlStr);
-    if (url.hostname.includes('youtube.com')) return url.searchParams.get('v');
-    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
-  } catch(e) {}
-  const vIndex = urlStr.indexOf('v=');
-  if (vIndex !== -1) {
-    const ampIndex = urlStr.indexOf('&', vIndex);
-    return urlStr.substring(vIndex + 2, ampIndex !== -1 ? ampIndex : urlStr.length);
-  }
-  const beIndex = urlStr.indexOf('youtu.be/');
-  if (beIndex !== -1) {
-    const queryIndex = urlStr.indexOf('?', beIndex);
-    return urlStr.substring(beIndex + 9, queryIndex !== -1 ? queryIndex : urlStr.length);
-  }
-  return null;
+  const match = urlStr.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  return match ? match[1] : null;
 }
 
 function initYTPlayer(videoId, start) {
@@ -323,7 +315,7 @@ function initYTPlayer(videoId, start) {
         'disablekb': 1, 
         'modestbranding': 1, 
         'rel': 0, 
-        'mute': 0,  // Unmuted by default as requested
+        'mute': 0, 
         'playsinline': 1, 
         'start': Math.floor(start) 
       },
@@ -347,7 +339,6 @@ function startHighFrequencyTracker() {
   if (timestampTrackerInterval) clearInterval(timestampTrackerInterval);
   if (dbEndTime <= 0) return; // Ignore if there is no set end time
 
-  // 10ms high-frequency tracker as requested
   timestampTrackerInterval = setInterval(() => {
     try {
       if (player && typeof player.getCurrentTime === 'function') {
@@ -501,7 +492,7 @@ const SESSIONSIM = (() => {
 })();
 
 /* ===============
-   CSV LOGIC 
+   CORE LOGIC & CSV PARSING
 ================= */
 function parseCsvLine(line) {
   const out = []; let cur = ''; let inQ = false;
@@ -511,6 +502,19 @@ function parseCsvLine(line) {
     else { if (c === '"') inQ = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; }
   }
   out.push(cur); return out.map(s => s.trim());
+}
+
+function secondsFromYoutubeUrl(url) {
+    if (!url || typeof url !== 'string') return null;
+    const tMatch = url.match(/[?&]t=([a-zA-Z0-9]+)/);
+    if (!tMatch) return null;
+    const t = tMatch[1];
+    if (/^\d+$/.test(t)) return parseInt(t, 10);
+    let sec = 0;
+    const h = t.match(/(\d+)h/i); if (h) sec += parseInt(h[1], 10) * 3600;
+    const m = t.match(/(\d+)m/i); if (m) sec += parseInt(m[1], 10) * 60;
+    const s = t.match(/(\d+)s/i); if (s) sec += parseInt(s[1], 10);
+    return sec > 0 ? sec : null;
 }
 
 function parseLocationCsv(key, text) {
@@ -531,6 +535,13 @@ function parseLocationCsv(key, text) {
   }
   if (!col) return null;
   const rows = [];
+  
+  const parseNum = (val) => {
+      if (!val) return null;
+      const n = parseFloat(val.trim());
+      return isNaN(n) ? null : n;
+  };
+
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const line = lines[i]; if (!line.trim()) continue;
     const cells = parseCsvLine(line);
@@ -539,13 +550,16 @@ function parseLocationCsv(key, text) {
     const saved = localStorage.getItem(`progress_${key}_${num}`);
     let doneVal = (saved !== null) ? parseInt(saved, 10) : 0; 
 
-    let link = col.url >= 0 && cells[col.url] ? cells[col.url] : null;
-    let fLink = col.fUrl >= 0 && cells[col.fUrl] ? cells[col.fUrl] : null;
+    let link = col.url >= 0 && cells[col.url] ? cells[col.url] : (isHttpToken(cells[col.time+1]) ? cells[col.time+1] : null);
+    let fLink = col.fUrl >= 0 && cells[col.fUrl] ? cells[col.fUrl] : (isHttpToken(cells[col.source+1]) ? cells[col.source+1] : null);
     
-    let sSec = col.start >= 0 && cells[col.start] ? parseFloat(cells[col.start]) : null;
-    let eSec = col.end >= 0 && cells[col.end] ? parseFloat(cells[col.end]) : null;
-    let fsSec = col.fStart >= 0 && cells[col.fStart] ? parseFloat(cells[col.fStart]) : null;
-    let feSec = col.fEnd >= 0 && cells[col.fEnd] ? parseFloat(cells[col.fEnd]) : null;
+    let sSec = parseNum(cells[col.start]);
+    let eSec = parseNum(cells[col.end]);
+    let fsSec = parseNum(cells[col.fStart]);
+    let feSec = parseNum(cells[col.fEnd]);
+    
+    if (sSec === null && link) sSec = secondsFromYoutubeUrl(link);
+    if (fsSec === null && fLink) fsSec = secondsFromYoutubeUrl(fLink);
 
     rows.push({
       originalKey: key, 
@@ -571,7 +585,7 @@ async function ensureLocationLoaded(key) {
 
 function getAllChallenges() {
   const allRows = [];
-  ORDERED_KEYS.forEach(key => { if (DATA[key] && DATA[key].rows) allRows.push(...DATA[key].rows); });
+  ORDERED_KEYS.forEach(key => { if (DATA[key]) allRows.push(...DATA[key].rows); });
   return allRows;
 }
 
@@ -737,7 +751,7 @@ function toggleDone(key, num, cb) {
     localStorage.setItem(`progress_${key}_${num}`, row.done);
     DATA[key].done_count = DATA[key].rows.filter(r => r.done === 1).length;
     
-    // Sync table row UI
+    // Sync table row UI safely via data attributes
     document.querySelectorAll(`.done-checkbox[data-key="${key}"][data-num="${num}"]`).forEach(checkbox => {
         checkbox.checked = row.done === 1;
         const tr = checkbox.closest('tr');
@@ -775,7 +789,7 @@ async function handleExport() {
   await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
   let t = 0;
   const maps = ORDERED_KEYS.map(k => {
-    if(!DATA[k] || !DATA[k].rows) return [];
+    if(!DATA[k]) return [];
     const arr = DATA[k].rows.map(r => r.done === 1);
     t += arr.filter(Boolean).length;
     return arr;
@@ -784,7 +798,7 @@ async function handleExport() {
   const code = SESSIONSIM.encode({ maps, total: t });
   
   document.getElementById('modal-title').innerText = "Export Save Code";
-  document.getElementById('modal-desc').innerText = "Copy this code. You can paste it on another device to restore your exact progress losslessly.";
+  document.getElementById('modal-desc').innerText = "Copy this strict 10-character code to restore your exact progress on another device.";
   const input = document.getElementById('modal-input');
   input.value = code; input.readOnly = true;
   
@@ -801,7 +815,7 @@ async function handleExport() {
 
 function handleImport() {
   document.getElementById('modal-title').innerText = "Import Save Code";
-  document.getElementById('modal-desc').innerText = "Paste your code below. WARNING: Overwrites current progress.";
+  document.getElementById('modal-desc').innerText = "Paste your 10-character code below. WARNING: Overwrites current progress.";
   const input = document.getElementById('modal-input');
   input.value = ""; input.readOnly = false;
   
@@ -813,6 +827,7 @@ function handleImport() {
       try {
         await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
         const state = SESSIONSIM.decode(code);
+        if(!state) { alert("Invalid code format."); return; }
         
         ORDERED_KEYS.forEach((k, i) => {
           if(DATA[k] && DATA[k].rows) {
@@ -902,7 +917,7 @@ function setFilter(f, btn) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  const rows = currentKey === 'all_challenges' ? getAllChallenges() : (DATA[currentKey] ? DATA[currentKey].rows : []);
+  const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows;
   const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`);
   if (wrap) wrap.innerHTML = buildTable(rows, currentKey);
   updateSticky();
@@ -910,7 +925,7 @@ function setFilter(f, btn) {
 
 function setSearch(val) {
   searchQuery = val;
-  const rows = currentKey === 'all_challenges' ? getAllChallenges() : (DATA[currentKey] ? DATA[currentKey].rows : []);
+  const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows;
   const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`);
   if (wrap) wrap.innerHTML = buildTable(rows, currentKey);
   updateSticky();
