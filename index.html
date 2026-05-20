@@ -126,7 +126,6 @@
   .yt-modal-content.checked { border-color: var(--done); box-shadow: 0 0 40px rgba(57, 255, 20, 0.4); }
   .yt-close-btn { position: absolute; top: -36px; right: 0; background: transparent; border: none; color: var(--text); font-family: 'Space Mono', monospace; font-size: 24px; cursor: pointer; transition: color 0.2s; }
   .yt-close-btn:hover { color: var(--accent2); }
-  #yt-player-wrap { width: 100%; aspect-ratio: 16 / 9; background: #000; }
   .yt-row-info { padding: 16px; background: var(--bg); border-top: 1px solid var(--border); }
   .yt-row-info table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .yt-row-info td { padding: 10px 12px; vertical-align: middle; border-bottom: none; }
@@ -252,11 +251,17 @@
 <div id="yt-modal" class="modal-overlay">
   <div class="yt-modal-content">
     <button class="yt-close-btn" onclick="closeYTModal()">X</button>
-    <div id="yt-player-wrap"><div id="yt-player-div"></div></div>
+    <!-- IMPLEMENTATION OF REQUESTED SHIELDED PLAYER CONTAINER -->
+    <div id="yt-player-wrap" style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden;">
+      <div id="db-yt-player"></div>
+      <!-- Click/Hover Shield blocks mouse interactions that wake up the UI -->
+      <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 10; cursor: default; pointer-events: auto;"></div>
+    </div>
     <div id="yt-row-info" class="yt-row-info"></div>
   </div>
 </div>
 
+<script src="https://youtube.com/iframe_api"></script>
 <script>
 let DATA = {};
 let currentKey = null;
@@ -272,60 +277,69 @@ const loadPromises = {};
 /* ===============
    YOUTUBE IFRAME API & SEAMLESS LOOP LOGIC
 ================= */
-let ytPlayer = null;
-let ytReady = false;
-let ytLoopInterval;
+let player;
+let timestampTrackerInterval;
 let currentLoopStart = 0;
 let currentLoopEnd = 0;
-let initialSnapDone = false;
 
-const ytScriptTag = document.createElement('script');
-ytScriptTag.src = "https://www.youtube.com/iframe_api";
-const firstScriptTag = document.getElementsByTagName('script')[0];
-if(firstScriptTag) firstScriptTag.parentNode.insertBefore(ytScriptTag, firstScriptTag);
-else document.head.appendChild(ytScriptTag);
-
-window.onYouTubeIframeAPIReady = function() { ytReady = true; };
-
-function extractYTId(urlStr) {
-  if (!urlStr) return null;
-  try {
-    const url = new URL(urlStr);
-    if (url.hostname.includes('youtube.com')) return url.searchParams.get('v');
-    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
-  } catch(e) {}
-  const vIndex = urlStr.indexOf('v=');
-  if (vIndex !== -1) {
-    const ampIndex = urlStr.indexOf('&', vIndex);
-    return urlStr.substring(vIndex + 2, ampIndex !== -1 ? ampIndex : urlStr.length);
-  }
-  const beIndex = urlStr.indexOf('youtu.be/');
-  if (beIndex !== -1) {
-    const queryIndex = urlStr.indexOf('?', beIndex);
-    return urlStr.substring(beIndex + 9, queryIndex !== -1 ? queryIndex : urlStr.length);
-  }
-  return null;
+function extractVideoId(url) {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
 }
 
 function initYTPlayer(videoId, start) {
-  if(!ytReady) { setTimeout(() => initYTPlayer(videoId, start), 100); return; }
-  if(!ytPlayer) {
-    ytPlayer = new YT.Player('yt-player-div', {
+  if(!window.YT || !window.YT.Player) { setTimeout(() => initYTPlayer(videoId, start), 100); return; }
+  
+  if(!player) {
+    player = new YT.Player('db-yt-player', {
       height: '100%', width: '100%', videoId: videoId,
-      playerVars: { 'autoplay': 1, 'fs': 1, 'rel': 0, 'playsinline': 1, 'start': Math.floor(start) },
+      playerVars: { 
+        'autoplay': 1, 'controls': 0, 'disablekb': 1, 
+        'modestbranding': 1, 'rel': 0, 'mute': 1, 'playsinline': 1, 
+        'start': Math.floor(start) 
+      },
       events: { 
-        'onStateChange': function(event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-                if (!initialSnapDone && currentLoopStart > 0) {
-                    if (Math.abs(ytPlayer.getCurrentTime() - currentLoopStart) > 0.5) ytPlayer.seekTo(currentLoopStart, true);
-                    initialSnapDone = true;
-                }
-            }
-        } 
+        'onReady': onPlayerReady,
+        'onStateChange': onPlayerStateChange 
       }
     });
   } else {
-    ytPlayer.loadVideoById({videoId: videoId, startSeconds: start});
+    player.loadVideoById({videoId: videoId, startSeconds: start});
+  }
+}
+
+function onPlayerReady(event) {
+  event.target.seekTo(currentLoopStart);
+  event.target.playVideo();
+  startHighFrequencyTracker();
+}
+
+function startHighFrequencyTracker() {
+  if (timestampTrackerInterval) clearInterval(timestampTrackerInterval);
+  if (currentLoopEnd <= 0) return; // Ignore if there is no end time 
+
+  timestampTrackerInterval = setInterval(() => {
+    try {
+      if (player && typeof player.getCurrentTime === 'function') {
+        const currentTime = player.getCurrentTime();
+        if (currentTime >= currentLoopEnd || currentTime < currentLoopStart - 0.5) {
+          player.seekTo(currentLoopStart);
+        }
+      }
+    } catch(e) { clearInterval(timestampTrackerInterval); }
+  }, 10); 
+}
+
+function onPlayerStateChange(event) {
+  if (event.data === YT.PlayerState.PLAYING) {
+    startHighFrequencyTracker();
+  } else if (event.data === YT.PlayerState.ENDED) {
+    player.seekTo(currentLoopStart);
+    player.playVideo();
+  } else {
+    clearInterval(timestampTrackerInterval);
   }
 }
 
@@ -337,12 +351,11 @@ function openYTModal(key, num, type) {
   const start = type === 'time' ? row.startSec : row.fStartSec;
   const end = type === 'time' ? row.endSec : row.fEndSec;
   
-  const videoId = extractYTId(url);
+  const videoId = extractVideoId(url);
   if(!videoId) { window.open(url, '_blank'); return; }
 
   currentLoopStart = start || 0;
   currentLoopEnd = end || 0;
-  initialSnapDone = false;
 
   const modal = document.getElementById('yt-modal');
   const content = modal.querySelector('.yt-modal-content');
@@ -370,28 +383,11 @@ function openYTModal(key, num, type) {
   content.classList.toggle('checked', row.done === 1);
   modal.classList.add('visible');
   initYTPlayer(videoId, currentLoopStart);
-
-  clearInterval(ytLoopInterval);
-  if (currentLoopEnd > 0) {
-      ytLoopInterval = setInterval(() => {
-          try {
-              if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && typeof ytPlayer.getPlayerState === 'function') {
-                  if (ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
-                      if (ytPlayer.getCurrentTime() >= (currentLoopEnd - 0.2)) {
-                          ytPlayer.seekTo(currentLoopStart, true);
-                      }
-                  }
-              }
-          } catch(e) {
-              // Silently ignore cross-origin restrictions to prevent locking the main thread
-          }
-      }, 50);
-  }
 }
 
 function closeYTModal() {
-  if (ytPlayer && typeof ytPlayer.stopVideo === 'function') ytPlayer.stopVideo();
-  clearInterval(ytLoopInterval);
+  if (player && typeof player.stopVideo === 'function') player.stopVideo();
+  clearInterval(timestampTrackerInterval);
   document.getElementById('yt-modal').classList.remove('visible');
 }
 
@@ -477,12 +473,6 @@ const SESSIONSIM = (() => {
 /* ===============
    CORE LOGIC & CSV PARSING
 ================= */
-function secondsFromYoutubeUrl(url) {
-  if (!url || typeof url !== 'string') return null;
-  let m = url.match(/[?&#]t=(\d+)s?(?!\d)/i); if (m) return parseInt(m[1], 10);
-  m = url.match(/[?&#]t=(\d+)/); return m ? parseInt(m[1], 10) : null;
-}
-
 function parseCsvLine(line) {
   const out = []; let cur = ''; let inQ = false;
   for (let i = 0; i < line.length; i++) {
@@ -493,15 +483,12 @@ function parseCsvLine(line) {
   out.push(cur); return out.map(s => s.trim());
 }
 
-function escapeHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-function isHttpToken(s) { return /^https?:\/\//i.test(String(s || '').trim()); }
-
 function parseLocationCsv(key, text) {
   const lines = text.split(/\r?\n/);
   let headerIdx = -1, col = null;
   for (let i = 0; i < lines.length; i++) {
     const cells = parseCsvLine(lines[i]);
-    const trimmed = cells.map(c => c.trim()); // Safely trim headers
+    const trimmed = cells.map(c => c.trim()); 
     if (trimmed.includes('Time') && trimmed.includes('Stance')) {
       headerIdx = i; const idx = (n) => trimmed.indexOf(n);
       col = { 
@@ -522,17 +509,13 @@ function parseLocationCsv(key, text) {
     const saved = localStorage.getItem(`progress_${key}_${num}`);
     let doneVal = (saved !== null) ? parseInt(saved, 10) : 0; 
 
-    // Safe extraction of Start and End seconds to enable looping
-    let link = col.url >= 0 && cells[col.url] ? cells[col.url] : (isHttpToken(cells[col.time+1]) ? cells[col.time+1] : null);
-    let fLink = col.fUrl >= 0 && cells[col.fUrl] ? cells[col.fUrl] : (isHttpToken(cells[col.source+1]) ? cells[col.source+1] : null);
+    let link = col.url >= 0 && cells[col.url] ? cells[col.url] : null;
+    let fLink = col.fUrl >= 0 && cells[col.fUrl] ? cells[col.fUrl] : null;
     
     let sSec = col.start >= 0 && cells[col.start] ? parseFloat(cells[col.start]) : null;
     let eSec = col.end >= 0 && cells[col.end] ? parseFloat(cells[col.end]) : null;
     let fsSec = col.fStart >= 0 && cells[col.fStart] ? parseFloat(cells[col.fStart]) : null;
     let feSec = col.fEnd >= 0 && cells[col.fEnd] ? parseFloat(cells[col.fEnd]) : null;
-    
-    if (sSec === null && link) sSec = secondsFromYoutubeUrl(link);
-    if (fsSec === null && fLink) fsSec = secondsFromYoutubeUrl(fLink);
 
     rows.push({
       originalKey: key, 
@@ -702,7 +685,7 @@ function toggleDone(key, num, cb) {
     localStorage.setItem(`progress_${key}_${num}`, row.done);
     DATA[key].done_count = DATA[key].rows.filter(r => r.done === 1).length;
     
-    // Sync table row UI
+    // Sync table row UI safely via data attributes
     document.querySelectorAll(`.done-checkbox[data-key="${key}"][data-num="${num}"]`).forEach(checkbox => {
         checkbox.checked = row.done === 1;
         const tr = checkbox.closest('tr');
@@ -715,7 +698,6 @@ function toggleDone(key, num, cb) {
         const content = ytModal.querySelector('.yt-modal-content');
         if (content) content.classList.toggle('checked', row.done === 1);
     }
-
     updateAllProgress();
   }
 }
@@ -754,7 +736,7 @@ async function handleExport() {
   btn.innerText = "Copy to Clipboard";
   btn.onclick = () => {
     navigator.clipboard.writeText(code).catch(()=>{});
-    input.select(); document.execCommand("copy"); // fallback
+    input.select(); document.execCommand("copy");
     btn.innerText = "Copied!";
     setTimeout(() => btn.innerText = "Copy to Clipboard", 2000);
   };
