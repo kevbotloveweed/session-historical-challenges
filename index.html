@@ -251,12 +251,13 @@
 <div id="yt-modal" class="modal-overlay">
   <div class="yt-modal-content">
     <button class="yt-close-btn" onclick="closeYTModal()">X</button>
-    <!-- IMPLEMENTATION OF REQUESTED SHIELDED PLAYER CONTAINER -->
-    <div id="yt-player-wrap" style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden;">
+    
+    <!-- Shielded Player Container (Blocks UI Interactions) -->
+    <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden;">
       <div id="db-yt-player"></div>
-      <!-- Click/Hover Shield blocks mouse interactions that wake up the UI -->
       <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 10; cursor: default; pointer-events: auto;"></div>
     </div>
+    
     <div id="yt-row-info" class="yt-row-info"></div>
   </div>
 </div>
@@ -275,29 +276,55 @@ ORDERED_KEYS.forEach(k => CSV_LOCATIONS[k] = 'data/' + encodeURIComponent(k + '.
 const loadPromises = {};
 
 /* ===============
-   YOUTUBE IFRAME API & SEAMLESS LOOP LOGIC
+   YOUTUBE IFRAME API & SEAMLESS UNMUTED LOOP LOGIC
 ================= */
-let player;
+let player = null;
+let ytReady = false;
 let timestampTrackerInterval;
-let currentLoopStart = 0;
-let currentLoopEnd = 0;
+let dbStartTime = 0;
+let dbEndTime = 0;
 
-function extractVideoId(url) {
-  if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+window.onYouTubeIframeAPIReady = function() { ytReady = true; };
+
+function extractYTId(urlStr) {
+  if (!urlStr) return null;
+  try {
+    const url = new URL(urlStr);
+    if (url.hostname.includes('youtube.com')) return url.searchParams.get('v');
+    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
+  } catch(e) {}
+  const vIndex = urlStr.indexOf('v=');
+  if (vIndex !== -1) {
+    const ampIndex = urlStr.indexOf('&', vIndex);
+    return urlStr.substring(vIndex + 2, ampIndex !== -1 ? ampIndex : urlStr.length);
+  }
+  const beIndex = urlStr.indexOf('youtu.be/');
+  if (beIndex !== -1) {
+    const queryIndex = urlStr.indexOf('?', beIndex);
+    return urlStr.substring(beIndex + 9, queryIndex !== -1 ? queryIndex : urlStr.length);
+  }
+  return null;
 }
 
 function initYTPlayer(videoId, start) {
-  if(!window.YT || !window.YT.Player) { setTimeout(() => initYTPlayer(videoId, start), 100); return; }
+  if(!ytReady || !window.YT || !window.YT.Player) { 
+    setTimeout(() => initYTPlayer(videoId, start), 100); 
+    return; 
+  }
   
   if(!player) {
     player = new YT.Player('db-yt-player', {
-      height: '100%', width: '100%', videoId: videoId,
+      height: '100%', 
+      width: '100%', 
+      videoId: videoId,
       playerVars: { 
-        'autoplay': 1, 'controls': 0, 'disablekb': 1, 
-        'modestbranding': 1, 'rel': 0, 'mute': 1, 'playsinline': 1, 
+        'autoplay': 1, 
+        'controls': 0, 
+        'disablekb': 1, 
+        'modestbranding': 1, 
+        'rel': 0, 
+        'mute': 0,  // Unmuted by default as requested
+        'playsinline': 1, 
         'start': Math.floor(start) 
       },
       events: { 
@@ -311,24 +338,27 @@ function initYTPlayer(videoId, start) {
 }
 
 function onPlayerReady(event) {
-  event.target.seekTo(currentLoopStart);
+  event.target.seekTo(dbStartTime);
   event.target.playVideo();
   startHighFrequencyTracker();
 }
 
 function startHighFrequencyTracker() {
   if (timestampTrackerInterval) clearInterval(timestampTrackerInterval);
-  if (currentLoopEnd <= 0) return; // Ignore if there is no end time 
+  if (dbEndTime <= 0) return; // Ignore if there is no set end time
 
+  // 10ms high-frequency tracker as requested
   timestampTrackerInterval = setInterval(() => {
     try {
       if (player && typeof player.getCurrentTime === 'function') {
         const currentTime = player.getCurrentTime();
-        if (currentTime >= currentLoopEnd || currentTime < currentLoopStart - 0.5) {
-          player.seekTo(currentLoopStart);
+        if (currentTime >= dbEndTime || currentTime < dbStartTime - 0.5) {
+          player.seekTo(dbStartTime);
         }
       }
-    } catch(e) { clearInterval(timestampTrackerInterval); }
+    } catch(e) { 
+      clearInterval(timestampTrackerInterval); 
+    }
   }, 10); 
 }
 
@@ -336,7 +366,7 @@ function onPlayerStateChange(event) {
   if (event.data === YT.PlayerState.PLAYING) {
     startHighFrequencyTracker();
   } else if (event.data === YT.PlayerState.ENDED) {
-    player.seekTo(currentLoopStart);
+    player.seekTo(dbStartTime);
     player.playVideo();
   } else {
     clearInterval(timestampTrackerInterval);
@@ -348,14 +378,14 @@ function openYTModal(key, num, type) {
   if(!row) return;
 
   const url = type === 'time' ? row.link : row.sourceLink;
-  const start = type === 'time' ? row.startSec : row.fStartSec;
-  const end = type === 'time' ? row.endSec : row.fEndSec;
+  dbStartTime = type === 'time' ? row.startSec : row.fStartSec;
+  dbEndTime = type === 'time' ? row.endSec : row.fEndSec;
   
-  const videoId = extractVideoId(url);
-  if(!videoId) { window.open(url, '_blank'); return; }
+  dbStartTime = dbStartTime || 0;
+  dbEndTime = dbEndTime || 0;
 
-  currentLoopStart = start || 0;
-  currentLoopEnd = end || 0;
+  const videoId = extractYTId(url);
+  if(!videoId) { window.open(url, '_blank'); return; }
 
   const modal = document.getElementById('yt-modal');
   const content = modal.querySelector('.yt-modal-content');
@@ -382,7 +412,7 @@ function openYTModal(key, num, type) {
 
   content.classList.toggle('checked', row.done === 1);
   modal.classList.add('visible');
-  initYTPlayer(videoId, currentLoopStart);
+  initYTPlayer(videoId, dbStartTime);
 }
 
 function closeYTModal() {
@@ -471,7 +501,7 @@ const SESSIONSIM = (() => {
 })();
 
 /* ===============
-   CORE LOGIC & CSV PARSING
+   CSV LOGIC 
 ================= */
 function parseCsvLine(line) {
   const out = []; let cur = ''; let inQ = false;
@@ -488,7 +518,7 @@ function parseLocationCsv(key, text) {
   let headerIdx = -1, col = null;
   for (let i = 0; i < lines.length; i++) {
     const cells = parseCsvLine(lines[i]);
-    const trimmed = cells.map(c => c.trim()); 
+    const trimmed = cells.map(c => c.trim());
     if (trimmed.includes('Time') && trimmed.includes('Stance')) {
       headerIdx = i; const idx = (n) => trimmed.indexOf(n);
       col = { 
@@ -541,13 +571,18 @@ async function ensureLocationLoaded(key) {
 
 function getAllChallenges() {
   const allRows = [];
-  ORDERED_KEYS.forEach(key => { if (DATA[key]) allRows.push(...DATA[key].rows); });
+  ORDERED_KEYS.forEach(key => { if (DATA[key] && DATA[key].rows) allRows.push(...DATA[key].rows); });
   return allRows;
 }
 
 function updateAllProgress() {
   let gT = 0, gD = 0;
-  Object.keys(DATA).forEach(k => { gT += DATA[k].total; gD += DATA[k].done_count; });
+  Object.keys(DATA).forEach(k => { 
+      if(DATA[k] && typeof DATA[k].total === 'number') {
+          gT += DATA[k].total; 
+          gD += DATA[k].done_count; 
+      }
+  });
   const pct = gT > 0 ? (gD / gT * 100).toFixed(1) : 0;
   
   document.querySelector('.prog-count').textContent = `${gD} / ${gT}`;
@@ -575,10 +610,16 @@ function updateAllProgress() {
     }
   });
   
-  if (currentKey && currentKey !== 'home') {
+  if (currentKey && currentKey !== 'home' && DATA[currentKey]) {
     const panel = document.getElementById(`view-${currentKey}`);
     if (panel) {
-      const loc = currentKey === 'all_challenges' ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0) } : DATA[currentKey];
+      let loc = DATA[currentKey];
+      if (currentKey === 'all_challenges') {
+         let t = 0, d = 0;
+         Object.values(DATA).forEach(obj => { if(obj) { t+=obj.total; d+=obj.done_count; } });
+         loc = { total: t, done_count: d };
+      }
+      
       const vals = panel.querySelectorAll('.loc-stat .val');
       if (vals.length >= 3) {
         vals[0].textContent = loc.done_count;
@@ -591,13 +632,15 @@ function updateAllProgress() {
 
 function sortTable(key, col) {
   if (currentSort.col === col) { currentSort.dir *= -1; } else { currentSort.col = col; currentSort.dir = 1; }
-  const rows = key === 'all_challenges' ? getAllChallenges() : DATA[key].rows;
+  const rows = key === 'all_challenges' ? getAllChallenges() : (DATA[key] ? DATA[key].rows : []);
   const wrap = document.getElementById(`table-wrap-${key.replace(/\s/g,'_')}`);
   if (wrap) wrap.innerHTML = buildTable(rows, key);
   updateSticky();
 }
 
 function buildTable(rows, key) {
+  if(!rows || rows.length === 0) return `<div class="empty-state">No challenges found or data failed to load.</div>`;
+
   let filtered = rows.filter(r => {
     if (currentFilter === 'done') return r.done === 1;
     if (currentFilter === 'undone') return r.done === 0;
@@ -652,8 +695,16 @@ function buildTable(rows, key) {
 
 function buildPanel(key) {
   const isAll = key === 'all_challenges';
-  const loc = isAll ? { total: 335, done_count: Object.values(DATA).reduce((sum, d) => sum + (d.done_count || 0), 0), rows: getAllChallenges() } : DATA[key];
-  const pct = Math.round((loc.done_count / loc.total) * 100) || 0;
+  let loc;
+  if (isAll) {
+     let t = 0, d = 0;
+     Object.values(DATA).forEach(obj => { if(obj) { t += obj.total; d += obj.done_count; }});
+     loc = { total: t, done_count: d, rows: getAllChallenges() };
+  } else {
+     loc = DATA[key] || { total: 0, done_count: 0, rows: [] };
+  }
+
+  const pct = loc.total > 0 ? Math.round((loc.done_count / loc.total) * 100) : 0;
 
   return `
     <div class="spot-header-group">
@@ -679,13 +730,14 @@ function buildPanel(key) {
 }
 
 function toggleDone(key, num, cb) {
+  if (!DATA[key] || !DATA[key].rows) return;
   const row = DATA[key].rows.find(r => r.num === num);
   if (row) {
     row.done = cb.checked ? 1 : 0;
     localStorage.setItem(`progress_${key}_${num}`, row.done);
     DATA[key].done_count = DATA[key].rows.filter(r => r.done === 1).length;
     
-    // Sync table row UI safely via data attributes
+    // Sync table row UI
     document.querySelectorAll(`.done-checkbox[data-key="${key}"][data-num="${num}"]`).forEach(checkbox => {
         checkbox.checked = row.done === 1;
         const tr = checkbox.closest('tr');
@@ -698,12 +750,16 @@ function toggleDone(key, num, cb) {
         const content = ytModal.querySelector('.yt-modal-content');
         if (content) content.classList.toggle('checked', row.done === 1);
     }
+
     updateAllProgress();
   }
 }
 
 function resetAllProgress() {
-  if (confirm("Wipe your local progress entirely? This cannot be undone.")) { localStorage.clear(); location.reload(); }
+  if (confirm("Wipe your local progress entirely? This cannot be undone.")) { 
+    localStorage.clear(); 
+    location.reload(); 
+  }
 }
 
 /* ===============
@@ -719,7 +775,7 @@ async function handleExport() {
   await Promise.all(ORDERED_KEYS.map(k => ensureLocationLoaded(k)));
   let t = 0;
   const maps = ORDERED_KEYS.map(k => {
-    if(!DATA[k]) return [];
+    if(!DATA[k] || !DATA[k].rows) return [];
     const arr = DATA[k].rows.map(r => r.done === 1);
     t += arr.filter(Boolean).length;
     return arr;
@@ -736,7 +792,7 @@ async function handleExport() {
   btn.innerText = "Copy to Clipboard";
   btn.onclick = () => {
     navigator.clipboard.writeText(code).catch(()=>{});
-    input.select(); document.execCommand("copy");
+    input.select(); document.execCommand("copy"); // fallback
     btn.innerText = "Copied!";
     setTimeout(() => btn.innerText = "Copy to Clipboard", 2000);
   };
@@ -846,7 +902,7 @@ function setFilter(f, btn) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows;
+  const rows = currentKey === 'all_challenges' ? getAllChallenges() : (DATA[currentKey] ? DATA[currentKey].rows : []);
   const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`);
   if (wrap) wrap.innerHTML = buildTable(rows, currentKey);
   updateSticky();
@@ -854,7 +910,7 @@ function setFilter(f, btn) {
 
 function setSearch(val) {
   searchQuery = val;
-  const rows = currentKey === 'all_challenges' ? getAllChallenges() : DATA[currentKey].rows;
+  const rows = currentKey === 'all_challenges' ? getAllChallenges() : (DATA[currentKey] ? DATA[currentKey].rows : []);
   const wrap = document.getElementById(`table-wrap-${currentKey.replace(/\s/g,'_')}`);
   if (wrap) wrap.innerHTML = buildTable(rows, currentKey);
   updateSticky();
